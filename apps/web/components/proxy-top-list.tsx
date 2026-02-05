@@ -1,0 +1,133 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Server, Users, ArrowUpDown } from "lucide-react";
+import { OverviewCard } from "./overview-card";
+import { TopListItem } from "./top-list-item";
+import { Button } from "@/components/ui/button";
+import { formatBytes } from "@/lib/utils";
+import type { ProxyStats } from "@clashstats/shared";
+
+interface ProxyTopListProps {
+  data: ProxyStats[];
+  limit?: number;
+  onViewAll?: () => void;
+}
+
+type SortBy = "traffic" | "connections";
+
+const COLORS = ["#3B82F6", "#8B5CF6", "#06B6D4", "#10B981", "#F59E0B"];
+
+function formatProxyName(name: string): string {
+  if (!name) return "DIRECT";
+  return name
+    .replace(/^\["?/, "")
+    .replace(/"?\]$/, "")
+    .replace(/^🇺🇸\s*/, "🇺🇸 ")
+    .replace(/^🇯🇵\s*/, "🇯🇵 ")
+    .replace(/^🇸🇬\s*/, "🇸🇬 ")
+    .replace(/^🇭🇰\s*/, "🇭🇰 ")
+    .trim();
+}
+
+function getProxyEmoji(name: string): string {
+  if (name.includes("🇺🇸")) return "🇺🇸";
+  if (name.includes("🇯🇵")) return "🇯🇵";
+  if (name.includes("🇸🇬")) return "🇸🇬";
+  if (name.includes("🇭🇰")) return "🇭🇰";
+  if (name.includes("🇹🇼")) return "🇹🇼";
+  if (name.includes("🇰🇷")) return "🇰🇷";
+  if (name === "DIRECT" || name === "Direct") return "🏠";
+  return "🌐";
+}
+
+export function ProxyTopList({ data, limit = 5, onViewAll }: ProxyTopListProps) {
+  const [sortBy, setSortBy] = useState<SortBy>("traffic");
+
+  const { proxies, totalTraffic, totalConnections } = useMemo(() => {
+    if (!data) return { proxies: [], totalTraffic: 0, totalConnections: 0 };
+    
+    const sorted = [...data].sort((a, b) => {
+      if (sortBy === "traffic") {
+        const totalA = a.totalDownload + a.totalUpload;
+        const totalB = b.totalDownload + b.totalUpload;
+        return totalB - totalA;
+      }
+      return b.totalConnections - a.totalConnections;
+    });
+
+    const list = sorted.slice(0, limit).map((p, i) => ({
+      ...p,
+      total: p.totalDownload + p.totalUpload,
+      color: COLORS[i % COLORS.length],
+      displayName: formatProxyName(p.chain),
+      emoji: getProxyEmoji(p.chain),
+    }));
+    
+    const totalT = list.reduce((sum, p) => sum + p.total, 0);
+    const totalC = list.reduce((sum, p) => sum + p.totalConnections, 0);
+    
+    return { proxies: list, totalTraffic: totalT, totalConnections: totalC };
+  }, [data, limit, sortBy]);
+
+  const toggleSort = () => {
+    setSortBy(prev => prev === "traffic" ? "connections" : "traffic");
+  };
+
+  if (proxies.length === 0) {
+    return (
+      <OverviewCard title="Top 代理" icon={<Server className="w-4 h-4" />}>
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          暂无数据
+        </div>
+      </OverviewCard>
+    );
+  }
+
+  return (
+    <OverviewCard 
+      title="Top 代理" 
+      icon={<Server className="w-4 h-4" />}
+      action={
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-7 px-2 text-xs"
+          onClick={toggleSort}
+        >
+          {sortBy === "traffic" ? (
+            <><ArrowUpDown className="w-3 h-3 mr-1" /> 按流量</>
+          ) : (
+            <><Users className="w-3 h-3 mr-1" /> 按连接</>
+          )}
+        </Button>
+      }
+      footer={
+        onViewAll && (
+          <Button variant="ghost" size="sm" className="w-full h-9 text-xs" onClick={onViewAll}>
+            查看全部
+          </Button>
+        )
+      }
+    >
+      <div className="space-y-1 min-h-[320px]">
+        {proxies.map((proxy, index) => (
+          <TopListItem
+            key={proxy.chain}
+            rank={index + 1}
+            icon={<span className="text-lg">{proxy.emoji}</span>}
+            title={proxy.displayName}
+            subtitle={sortBy === "traffic" 
+              ? `${proxy.totalConnections} 连接` 
+              : `${formatBytes(proxy.total)}`
+            }
+            value={sortBy === "traffic" ? proxy.total : proxy.totalConnections}
+            total={sortBy === "traffic" ? totalTraffic : totalConnections}
+            color={proxy.color}
+            valueFormatter={sortBy === "connections" ? (v) => `${v}` : undefined}
+          />
+        ))}
+      </div>
+    </OverviewCard>
+  );
+}

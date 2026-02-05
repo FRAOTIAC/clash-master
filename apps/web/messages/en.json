@@ -1,0 +1,230 @@
+{
+  "metadata": {
+    "title": "Clash Master - Traffic Analytics",
+    "description": "Real-time traffic statistics and analytics for OpenClash"
+  },
+  "nav": {
+    "overview": "Overview",
+    "domains": "Domains",
+    "countries": "Countries",
+    "proxies": "Proxies",
+    "rules": "Rules",
+    "network": "Network",
+    "settings": "Settings"
+  },
+  "header": {
+    "title": "Clash Master",
+    "subtitle": "Modern and beautiful traffic analysis tool for Clash"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Real-time traffic monitoring and analytics",
+    "refresh": "Refresh",
+    "loading": "Loading statistics...",
+    "error": "Failed to load statistics",
+    "errorHint": "Make sure the collector service is running on port 3001",
+    "trafficTrend": "Traffic Trend",
+    "topDomainsChart": "Top Domains Chart",
+    "proxyDistribution": "Proxy Distribution",
+    "domains": "Domains",
+    "ips": "IP Addresses",
+    "updated": "Updated",
+    "justNow": "just now",
+    "secondsAgo": "{seconds}s ago",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago",
+    "autoRefresh": "Auto Refresh",
+    "paused": "Paused"
+  },
+  "stats": {
+    "totalDownload": "Total Download",
+    "totalUpload": "Total Upload",
+    "totalConnections": "Total Connections",
+    "uniqueDomains": "Unique Domains",
+    "todayDownload": "Today's Download",
+    "todayUpload": "Today's Upload",
+    "activeConnections": "Active Connections",
+    "uniqueIPs": "Unique IPs",
+    "total": "Total Traffic",
+    "domains": "Domains",
+    "rules": "Rules",
+    "today": "Today",
+    "download": "Download",
+    "upload": "Upload",
+    "tracked": "tracked"
+  },
+  "chart": {
+    "trafficHistory": "Traffic History (24h)",
+    "download": "Download",
+    "upload": "Upload"
+  },
+  "trend": {
+    "title": "Traffic Trend",
+    "30m": "30 min",
+    "1h": "1 hour",
+    "24h": "24 hours",
+    "totalDownload": "Total DL",
+    "totalUpload": "Total UL",
+    "total": "Total",
+    "noData": "No data",
+    "loading": "Loading..."
+  },
+  "topDomains": {
+    "title": "Top Domains",
+    "sortByTraffic": "Sort by traffic",
+    "sortByConnections": "Sort by connections",
+    "viewAll": "View all",
+    "connections": "connections"
+  },
+  "topProxies": {
+    "title": "Top Proxies",
+    "sortByTraffic": "Sort by traffic",
+    "sortByConnections": "Sort by connections",
+    "viewAll": "View all"
+  },
+  "topCountries": {
+    "title": "Top Countries",
+    "viewAll": "View all"
+  },
+  "domains": {
+    "title": "Top Domains",
+    "domainList": "Domain List",
+    "ipList": "IP Addresses",
+    "search": "Search domains...",
+    "noResults": "No domains found",
+    "connections": "connections",
+    "lastSeen": "Last seen",
+    "topDomainsByTraffic": "Top Domains by Traffic",
+    "mostBandwidthConsuming": "Most bandwidth-consuming domains",
+    "domain": "Domain",
+    "download": "Download",
+    "upload": "Upload",
+    "conn": "Conn",
+    "last": "Last",
+    "unknown": "Unknown",
+    "ips": "IPs",
+    "ipCount": "IPs",
+    "associatedIPs": "Associated IP Addresses",
+    "domainsCount": "domains",
+    "showing": "Showing",
+    "of": "of",
+    "page": "page",
+    "total": "Total"
+  },
+  "ips": {
+    "title": "Top IP Addresses",
+    "topIPsByTraffic": "Top IP Addresses by Traffic",
+    "search": "Search IPs...",
+    "noResults": "No IPs found",
+    "ip": "IP Address",
+    "ipAddress": "IP Address",
+    "location": "Location",
+    "domains": "Domains",
+    "domainCount": "Domains",
+    "associatedDomains": "Associated Domains",
+    "download": "Download",
+    "upload": "Upload",
+    "connections": "Connections",
+    "ipsCount": "IPs",
+    "showing": "Showing",
+    "of": "of",
+    "page": "page",
+    "total": "Total"
+  },
+  "countries": {
+    "title": "Countries",
+    "details": "Country Details"
+  },
+  "proxies": {
+    "title": "Proxies"
+  },
+  "rules": {
+    "title": "Rules"
+  },
+  "network": {
+    "title": "Network",
+    "comingSoon": "Real-time connection monitoring coming soon..."
+  },
+  "common": {
+    "search": "Search",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "back": "Back",
+    "confirm": "Confirm",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "language": "Language",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "system": "System"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "select": "Select language",
+    "en": "English",
+    "zh": "中文"
+  },
+  "backend": {
+    "title": "Settings",
+    "firstTimeTitle": "Configure OpenClash Backend",
+    "firstTimeDescription": "Enter your OpenClash connection information to start monitoring traffic",
+    "description": "Manage backend connections and database",
+    "backendsTab": "Backends",
+    "databaseTab": "Database",
+    "name": "Name",
+    "host": "Host",
+    "port": "Port",
+    "token": "Auth Token",
+    "useSsl": "Use HTTPS",
+    "namePlaceholder": "e.g., Router",
+    "tokenPlaceholder": "Optional, if set please fill in",
+    "active": "Active",
+    "disabled": "Disabled",
+    "setActive": "Set Active",
+    "testConnection": "Test Connection",
+    "addNew": "Add New Backend",
+    "addBackend": "Add Backend",
+    "saveAndContinue": "Save & Continue",
+    "confirmDelete": "Confirm Delete",
+    "deleteDescription": "Are you sure you want to delete this backend configuration? This action cannot be undone.",
+    "noBackends": "No backend configurations",
+    "testSuccess": "Connection successful",
+    "testFailed": "Connection failed",
+    "databaseStats": "Database Statistics",
+    "dbSize": "Database Size",
+    "connectionsCount": "Connections Count",
+    "clearLogs": "Clear Logs",
+    "clearLogsDescription": "Clear old connection logs to free up disk space. This action cannot be undone.",
+    "clear1Day": "Clear 1 day ago",
+    "clear7Days": "Clear 7 days ago",
+    "clear30Days": "Clear 30 days ago",
+    "clearAll": "Clear All",
+    "confirmClearLogs": "Are you sure you want to clear logs older than {days} days?",
+    "confirmClearAllLogs": "Are you sure you want to clear ALL logs? This will delete all historical connection records and cannot be undone.",
+    "logsCleared": "Logs cleared successfully",
+    "switchSuccess": "Backend switched successfully",
+    "switchFailed": "Failed to switch backend",
+    "displaying": "Displaying",
+    "collecting": "Collecting",
+    "collect": "Collect",
+    "setDisplay": "Set Display",
+    "selectBackend": "Select Backend",
+    "manageBackends": "Manage Backends",
+    "firstBackendAutoActive": "First backend automatically set as active"
+  }
+}

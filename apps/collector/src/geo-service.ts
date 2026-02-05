@@ -1,0 +1,226 @@
+import type { StatsDatabase } from "./db.js";
+
+export interface GeoLocation {
+  country: string;
+  country_name: string;
+  city: string;
+  asn: string;
+  as_name: string;
+  as_domain: string;
+  continent: string;
+  continent_name: string;
+}
+
+export class GeoIPService {
+  private db: StatsDatabase;
+  private pendingQueries: Map<string, Promise<GeoLocation | null>> = new Map();
+  private lastRequestTime: number = 0;
+  private minRequestInterval: number = 100; // Minimum 100ms between requests
+  private queue: {
+    ip: string;
+    resolve: (value: GeoLocation | null) => void;
+  }[] = [];
+  private isProcessing: boolean = false;
+
+  constructor(db: StatsDatabase) {
+    this.db = db;
+    this.startQueueProcessor();
+  }
+
+  // Get geolocation for an IP (with caching)
+  async getGeoLocation(ip: string): Promise<GeoLocation | null> {
+    // Skip private/local IPs
+    if (this.isPrivateIP(ip)) {
+      return {
+        country: "LOCAL",
+        country_name: "Local Network",
+        city: "",
+        asn: "",
+        as_name: "Local Network",
+        as_domain: "",
+        continent: "LOCAL",
+        continent_name: "Local Network",
+      };
+    }
+
+    // Check cache first
+    const cached = this.db.getIPGeolocation(ip);
+    if (cached) {
+      return {
+        country: cached.country,
+        country_name: cached.country_name,
+        city: cached.city,
+        asn: cached.asn,
+        as_name: cached.as_name,
+        as_domain: cached.as_domain,
+        continent: cached.continent,
+        continent_name: cached.continent_name,
+      };
+    }
+
+    // Check if there's already a pending query for this IP
+    const pending = this.pendingQueries.get(ip);
+    if (pending) {
+      return pending;
+    }
+
+    // Create new query promise
+    const promise = this.queryWithQueue(ip);
+    this.pendingQueries.set(ip, promise);
+
+    try {
+      const result = await promise;
+      return result;
+    } finally {
+      this.pendingQueries.delete(ip);
+    }
+  }
+
+  // Queue-based query to respect rate limits
+  private async queryWithQueue(ip: string): Promise<GeoLocation | null> {
+    return new Promise((resolve) => {
+      this.queue.push({ ip, resolve });
+    });
+  }
+
+  // Process queue with rate limiting
+  private startQueueProcessor() {
+    const processQueue = async () => {
+      if (this.isProcessing || this.queue.length === 0) {
+        setTimeout(processQueue, 100);
+        return;
+      }
+
+      this.isProcessing = true;
+      const item = this.queue.shift();
+
+      if (item) {
+        try {
+          // Respect rate limit
+          const now = Date.now();
+          const timeSinceLastRequest = now - this.lastRequestTime;
+          if (timeSinceLastRequest < this.minRequestInterval) {
+            await this.sleep(this.minRequestInterval - timeSinceLastRequest);
+          }
+
+          const result = await this.queryAPI(item.ip);
+          this.lastRequestTime = Date.now();
+          item.resolve(result);
+        } catch (err) {
+          console.error(`[GeoIP] Error querying ${item.ip}:`, err);
+          item.resolve(null);
+        }
+      }
+
+      this.isProcessing = false;
+      setTimeout(processQueue, 100);
+    };
+
+    processQueue();
+  }
+
+  // Query the API
+  private async queryAPI(ip: string): Promise<GeoLocation | null> {
+    try {
+      console.log(`[GeoIP] Querying API for: ${ip}`);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(
+        `https://api.ipinfo.es/ipinfo?ip=${ip}&meituan=false`,
+        {
+          signal: controller.signal,
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        console.error(`[GeoIP] API error for ${ip}: ${response.status}`);
+        return null;
+      }
+
+      const data = (await response.json()) as {
+        country?: string;
+        country_name?: string;
+        city?: string;
+        asn?: string;
+        as_name?: string;
+        as_domain?: string;
+        continent?: string;
+        continent_name?: string;
+      };
+
+      const geo: GeoLocation = {
+        country: data.country || "Unknown",
+        country_name: data.country_name || "Unknown",
+        city: data.city || "",
+        asn: data.asn || "",
+        as_name: data.as_name || "",
+        as_domain: data.as_domain || "",
+        continent: data.continent || "Unknown",
+        continent_name: data.continent_name || "Unknown",
+      };
+
+      // Save to cache
+      this.db.saveIPGeolocation(ip, geo);
+      console.log(`[GeoIP] Cached: ${ip} -> ${geo.country_name}`);
+
+      return geo;
+    } catch (err) {
+      console.error(`[GeoIP] Failed to query ${ip}:`, err);
+      return null;
+    }
+  }
+
+  // Check if IP is private/local
+  private isPrivateIP(ip: string): boolean {
+    // IPv4 private ranges
+    const privateRanges = [
+      /^10\./,
+      /^172\.(1[6-9]|2[0-9]|3[01])\./,
+      /^192\.168\./,
+      /^127\./,
+      /^0\./,
+      /^255\./,
+      /^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./, // CGNAT
+    ];
+
+    // IPv6 private
+    if (ip.includes(":")) {
+      return (
+        ip.startsWith("fc") ||
+        ip.startsWith("fd") ||
+        ip.startsWith("fe80") ||
+        ip.startsWith("::1") ||
+        ip === "::1"
+      );
+    }
+
+    return privateRanges.some((range) => range.test(ip));
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // Bulk query IPs (for backfill)
+  async bulkQueryIPs(ips: string[]): Promise<void> {
+    const uniqueIPs = [...new Set(ips)].filter((ip) => !this.isPrivateIP(ip));
+    console.log(`[GeoIP] Bulk querying ${uniqueIPs.length} IPs`);
+
+    for (const ip of uniqueIPs) {
+      // Check if already cached
+      const cached = this.db.getIPGeolocation(ip);
+      if (!cached) {
+        await this.getGeoLocation(ip);
+        // Small delay to respect rate limits
+        await this.sleep(150);
+      }
+    }
+  }
+}

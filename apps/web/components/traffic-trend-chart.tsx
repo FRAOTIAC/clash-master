@@ -1,0 +1,262 @@
+"use client";
+
+import React, { useMemo } from "react";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  ResponsiveContainer,
+  CartesianGrid
+} from "recharts";
+import { Activity, Clock, BarChart3 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn, formatBytes } from "@/lib/utils";
+import type { TrafficTrendPoint } from "@clashstats/shared";
+
+type TimeRange = "30m" | "1h" | "24h";
+
+interface TrafficTrendChartProps {
+  data: TrafficTrendPoint[];
+  timeRange: TimeRange;
+  onTimeRangeChange: (range: TimeRange) => void;
+  isLoading?: boolean;
+}
+
+export const TrafficTrendChart = React.memo(function TrafficTrendChart({
+  data,
+  timeRange,
+  onTimeRangeChange,
+  isLoading = false,
+}: TrafficTrendChartProps) {
+  const t = useTranslations("trend");
+  const chartT = useTranslations("chart");
+
+  const timeRangeOptions: { value: TimeRange; label: string }[] = [
+    { value: "30m", label: t("30m") },
+    { value: "1h", label: t("1h") },
+    { value: "24h", label: t("24h") },
+  ];
+
+  // Calculate total traffic for the period
+  const stats = useMemo(() => {
+    if (!data?.length) return { totalDownload: 0, totalUpload: 0 };
+    
+    let totalDownload = 0;
+    let totalUpload = 0;
+    
+    for (const point of data) {
+      totalDownload += point.download;
+      totalUpload += point.upload;
+    }
+    
+    return { totalDownload, totalUpload };
+  }, [data]);
+
+  // Format data for chart - convert UTC to local time
+  const chartData = useMemo(() => {
+    return data.map(point => {
+      // Append Z to indicate UTC if not present, then convert to local
+      const timeStr = point.time.endsWith('Z') ? point.time : point.time + 'Z';
+      const date = new Date(timeStr);
+      return {
+        time: point.time,
+        download: point.download,
+        upload: point.upload,
+        timeLabel: date.toLocaleTimeString(undefined, { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }),
+        timestamp: date.getTime(), // for sorting/debugging
+      };
+    });
+  }, [data]);
+
+  // Custom tooltip - show local time
+  const CustomTooltip = React.useCallback(({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const dataPoint = payload[0].payload;
+      // Append Z to indicate UTC if not present, then convert to local
+      const timeStr = dataPoint.time.endsWith('Z') ? dataPoint.time : dataPoint.time + 'Z';
+      const date = new Date(timeStr);
+      return (
+        <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+          <p className="text-xs text-muted-foreground mb-2">
+            {date.toLocaleString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </p>
+          <div className="space-y-1">
+            <p className="text-sm flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="text-muted-foreground">{chartT("download")}:</span>
+              <span className="font-medium tabular-nums">{formatBytes(dataPoint.download)}</span>
+            </p>
+            <p className="text-sm flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              <span className="text-muted-foreground">{chartT("upload")}:</span>
+              <span className="font-medium tabular-nums">{formatBytes(dataPoint.upload)}</span>
+            </p>
+            <p className="text-sm flex items-center gap-2 pt-1 border-t border-border/50 mt-1">
+              <span className="w-2 h-2 rounded-full bg-transparent" />
+              <span className="text-muted-foreground">{t("total")}:</span>
+              <span className="font-semibold tabular-nums">{formatBytes(dataPoint.download + dataPoint.upload)}</span>
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }, [chartT, t]);
+
+  // If no data, show empty state
+  if (!isLoading && chartData.length === 0) {
+    return (
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            {t("title")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+            {t("noData")}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            {t("title")}
+          </CardTitle>
+          
+          {/* Time range selector */}
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5">
+            {timeRangeOptions.map((option) => (
+              <Button
+                key={option.value}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-7 px-3 text-xs rounded-md transition-all",
+                  timeRange === option.value
+                    ? "bg-background shadow-sm text-primary font-medium"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                onClick={() => onTimeRangeChange(option.value)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats summary */}
+        <div className="flex items-center gap-6 mt-3 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{t("totalDownload")}:</span>
+            <span className="font-semibold text-blue-500 tabular-nums">{formatBytes(stats.totalDownload)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <BarChart3 className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{t("totalUpload")}:</span>
+            <span className="font-semibold text-purple-500 tabular-nums">{formatBytes(stats.totalUpload)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-muted-foreground">{t("total")}:</span>
+            <span className="font-bold tabular-nums">{formatBytes(stats.totalDownload + stats.totalUpload)}</span>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        <div className="h-[200px] w-full">
+          {isLoading && chartData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 animate-pulse" />
+                {t("loading")}
+              </div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart 
+                data={chartData} 
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorDownload" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorUpload" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#888888" strokeOpacity={0.2} />
+                <XAxis 
+                  dataKey="timeLabel" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#888888' }}
+                  interval="preserveStartEnd"
+                  minTickGap={30}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#888888' }}
+                  tickFormatter={(value) => formatBytes(value).replace(' ', '')}
+                  width={50}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="download"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorDownload)"
+                  name={chartT("download")}
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="upload"
+                  stroke="#a855f7"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorUpload)"
+                  name={chartT("upload")}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}, (prev, next) => {
+  return (
+    JSON.stringify(prev.data) === JSON.stringify(next.data) &&
+    prev.timeRange === next.timeRange &&
+    prev.isLoading === next.isLoading
+  );
+});

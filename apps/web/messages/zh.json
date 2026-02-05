@@ -1,0 +1,230 @@
+{
+  "metadata": {
+    "title": "Clash Master - 流量分析",
+    "description": "OpenClash 实时流量统计与分析"
+  },
+  "nav": {
+    "overview": "概览",
+    "domains": "域名",
+    "countries": "国家",
+    "proxies": "代理",
+    "rules": "规则",
+    "network": "网络",
+    "settings": "设置"
+  },
+  "header": {
+    "title": "Clash Master",
+    "subtitle": "现代美观的流量分析工具"
+  },
+  "dashboard": {
+    "title": "仪表盘",
+    "subtitle": "实时监控流量使用情况",
+    "refresh": "刷新",
+    "loading": "加载统计数据...",
+    "error": "加载统计数据失败",
+    "errorHint": "请确保数据收集服务在 3001 端口运行",
+    "trafficTrend": "流量趋势",
+    "topDomainsChart": "热门域名图表",
+    "proxyDistribution": "代理节点分布",
+    "domains": "域名",
+    "ips": "IP 地址",
+    "updated": "更新",
+    "justNow": "刚刚",
+    "secondsAgo": "{seconds}秒前",
+    "minutesAgo": "{minutes}分钟前",
+    "hoursAgo": "{hours}小时前",
+    "daysAgo": "{days}天前",
+    "autoRefresh": "自动刷新",
+    "paused": "已暂停"
+  },
+  "stats": {
+    "totalDownload": "总下载量",
+    "totalUpload": "总上传量",
+    "totalConnections": "总连接数",
+    "uniqueDomains": "独立域名",
+    "todayDownload": "今日下载",
+    "todayUpload": "今日上传",
+    "activeConnections": "活跃连接",
+    "uniqueIPs": "独立 IP",
+    "total": "总计流量",
+    "domains": "域名数",
+    "rules": "规则数",
+    "today": "今日流量",
+    "download": "下载",
+    "upload": "上传",
+    "tracked": "已追踪"
+  },
+  "chart": {
+    "trafficHistory": "流量趋势 (24小时)",
+    "download": "下载",
+    "upload": "上传"
+  },
+  "trend": {
+    "title": "流量趋势",
+    "30m": "30分钟",
+    "1h": "1小时",
+    "24h": "24小时",
+    "totalDownload": "总下载",
+    "totalUpload": "总上传",
+    "total": "总计",
+    "noData": "暂无数据",
+    "loading": "加载中..."
+  },
+  "topDomains": {
+    "title": "Top 域名",
+    "sortByTraffic": "按流量排序",
+    "sortByConnections": "按连接数排序",
+    "viewAll": "查看全部",
+    "connections": "连接"
+  },
+  "topProxies": {
+    "title": "Top 代理",
+    "sortByTraffic": "按流量排序",
+    "sortByConnections": "按连接数排序",
+    "viewAll": "查看全部"
+  },
+  "topCountries": {
+    "title": "Top 国家",
+    "viewAll": "查看全部"
+  },
+  "domains": {
+    "title": "热门域名",
+    "domainList": "域名列表",
+    "ipList": "IP 地址",
+    "search": "搜索域名...",
+    "noResults": "未找到域名",
+    "connections": "连接",
+    "lastSeen": "最后访问",
+    "topDomainsByTraffic": "按流量排序的热门域名",
+    "mostBandwidthConsuming": "最消耗带宽的域名",
+    "domain": "域名",
+    "download": "下载",
+    "upload": "上传",
+    "conn": "连接",
+    "last": "最后",
+    "unknown": "未知",
+    "ips": "IP数",
+    "ipCount": "IP数",
+    "associatedIPs": "关联 IP 地址",
+    "domainsCount": "个域名",
+    "showing": "显示",
+    "of": "共",
+    "page": "页",
+    "total": "总计"
+  },
+  "ips": {
+    "title": "热门 IP 地址",
+    "topIPsByTraffic": "按流量排序的热门 IP",
+    "search": "搜索 IP...",
+    "noResults": "未找到 IP",
+    "ip": "IP 地址",
+    "ipAddress": "IP 地址",
+    "location": "位置",
+    "domains": "域名",
+    "domainCount": "域名数",
+    "associatedDomains": "关联域名",
+    "download": "下载",
+    "upload": "上传",
+    "connections": "连接",
+    "ipsCount": "个 IP",
+    "showing": "显示",
+    "of": "共",
+    "page": "页",
+    "total": "总计"
+  },
+  "countries": {
+    "title": "国家/地区",
+    "details": "国家/地区详情"
+  },
+  "proxies": {
+    "title": "代理节点"
+  },
+  "rules": {
+    "title": "规则"
+  },
+  "network": {
+    "title": "网络",
+    "comingSoon": "实时连接监控功能开发中..."
+  },
+  "common": {
+    "search": "搜索",
+    "cancel": "取消",
+    "close": "关闭",
+    "save": "保存",
+    "loading": "加载中...",
+    "error": "错误",
+    "retry": "重试",
+    "back": "返回",
+    "confirm": "确认",
+    "edit": "编辑",
+    "delete": "删除"
+  },
+  "settings": {
+    "title": "设置",
+    "appearance": "外观",
+    "theme": "主题",
+    "language": "语言",
+    "darkMode": "深色模式",
+    "lightMode": "浅色模式",
+    "system": "跟随系统"
+  },
+  "theme": {
+    "toggle": "切换主题",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统"
+  },
+  "language": {
+    "select": "选择语言",
+    "en": "English",
+    "zh": "中文"
+  },
+  "backend": {
+    "title": "设置",
+    "firstTimeTitle": "配置 OpenClash 后端",
+    "firstTimeDescription": "请输入您的 OpenClash 连接信息以开始监控流量",
+    "description": "管理后端连接和数据库",
+    "backendsTab": "后端管理",
+    "databaseTab": "数据库",
+    "name": "名称",
+    "host": "主机地址",
+    "port": "端口",
+    "token": "认证令牌",
+    "useSsl": "使用 HTTPS",
+    "namePlaceholder": "例如：路由器",
+    "tokenPlaceholder": "可选，如有设置请填写",
+    "active": "当前活跃",
+    "disabled": "已禁用",
+    "setActive": "设为活跃",
+    "testConnection": "测试连接",
+    "addNew": "添加新后端",
+    "addBackend": "添加后端",
+    "saveAndContinue": "保存并继续",
+    "confirmDelete": "确认删除",
+    "deleteDescription": "确定要删除这个后端配置吗？此操作不可撤销。",
+    "noBackends": "暂无后端配置",
+    "testSuccess": "连接成功",
+    "testFailed": "连接失败",
+    "databaseStats": "数据库统计",
+    "dbSize": "数据库大小",
+    "connectionsCount": "连接记录数",
+    "clearLogs": "清理日志",
+    "clearLogsDescription": "清理旧的连接日志以释放磁盘空间。此操作不可撤销。",
+    "clear1Day": "清理1天前",
+    "clear7Days": "清理7天前",
+    "clear30Days": "清理30天前",
+    "clearAll": "清理全部",
+    "confirmClearLogs": "确定要清理{days}天前的日志吗？",
+    "confirmClearAllLogs": "确定要清理所有日志吗？此操作将删除所有历史连接记录，不可撤销。",
+    "logsCleared": "日志清理成功",
+    "switchSuccess": "后端切换成功",
+    "switchFailed": "后端切换失败",
+    "displaying": "显示中",
+    "collecting": "收集中",
+    "collect": "收集",
+    "setDisplay": "设为显示",
+    "selectBackend": "选择后端",
+    "manageBackends": "管理后端",
+    "firstBackendAutoActive": "第一个后端已自动设为显示"
+  }
+}
