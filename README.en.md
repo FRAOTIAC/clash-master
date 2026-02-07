@@ -89,6 +89,19 @@ Open <http://localhost:3000> to get started.
 
 ### Option 2: Docker Run
 
+**Minimal (recommended, only Web exposed):**
+
+```bash
+docker run -d \
+  --name clash-master \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  --restart unless-stopped \
+  foru17/clash-master:latest
+```
+
+**Optional (only if you need direct API / WebSocket access):**
+
 ```bash
 docker run -d \
   --name clash-master \
@@ -101,6 +114,9 @@ docker run -d \
 ```
 
 Open <http://localhost:3000> to get started.
+
+> The frontend uses same-origin `/api` by default, so only port 3000 is required.  
+> Only expose 3001/3002 if you need direct API/WS access or do not proxy `/api`/`/ws` in Nginx.
 
 > If you use custom external ports with `docker run`, also pass:
 > `-e WEB_EXTERNAL_PORT=8080 -e API_EXTERNAL_PORT=8081 -e WS_EXTERNAL_PORT=8082`
@@ -202,14 +218,14 @@ The script will automatically detect and suggest available ports.
 
 ### Ports
 
-| Port |  Purpose  | Required | Description                 |
-| :--: | :-------: | :------: | :-------------------------- |
-| 3000 |  Web UI   |    ✅    | Frontend access port        |
-| 3001 |    API    |    ✅    | REST API port               |
-| 3002 | WebSocket |    ✅    | Real-time data transmission |
+| Port |  Purpose  | External Required | Description |
+| :--: | :-------: | :---------------: | :---------- |
+| 3000 |  Web UI   |        ✅         | Frontend entry point |
+| 3001 |    API    |       Optional     | Only needed for direct access/debug; frontend uses `/api` by default |
+| 3002 | WebSocket |       Optional     | Real-time updates; can be proxied via Nginx `/ws` |
 
-> Recommended: change **external ports only** (`WEB_EXTERNAL_PORT / API_EXTERNAL_PORT / WS_EXTERNAL_PORT`)
-> and keep internal ports at 3000/3001/3002. This avoids rebuilds and prevents `/api` 500 errors.
+> You only need to reverse-proxy the Web UI in Nginx. The frontend uses same-origin `/api` by default,
+> so 3001/3002 do not need to be exposed or configured unless you want direct API/WS access.
 
 ### Multi-Architecture Support
 

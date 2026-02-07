@@ -75,6 +75,20 @@ docker compose up -d
 ### 方式二：Docker 直接运行
 
 ```bash
+**最简（推荐，仅 Web 反代）：**
+
+```bash
+docker run -d \
+  --name clash-master \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  --restart unless-stopped \
+  foru17/clash-master:latest
+```
+
+**可选（直连 API / WebSocket 时才需要）：**
+
+```bash
 docker run -d \
   --name clash-master \
   -p 3000:3000 \
@@ -83,6 +97,10 @@ docker run -d \
   -v $(pwd)/data:/app/data \
   --restart unless-stopped \
   foru17/clash-master:latest
+```
+
+> 默认前端走同域 `/api`，所以只需要暴露 3000。  
+> 只有当你需要直连 API / WS 或未配置 Nginx `/api` / `/ws` 反代时，才需要暴露 3001/3002。
 ```
 
 访问 <http://localhost:3000>
@@ -187,14 +205,14 @@ curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh |
 
 ### 端口说明
 
-| 端口 |   用途    | 必需 | 说明          |
-| :--: | :-------: | :--: | :------------ |
-| 3000 | Web 界面  |  ✅  | 前端访问端口  |
-| 3001 | API 接口  |  ✅  | REST API 端口 |
-| 3002 | WebSocket |  ✅  | 实时数据传输  |
+| 端口 |   用途    | 外部必需 | 说明 |
+| :--: | :-------: | :------: | :--- |
+| 3000 | Web 界面  |   ✅     | 前端访问入口 |
+| 3001 | API 接口  |   可选   | 仅直连/调试时需要；前端默认走 `/api` |
+| 3002 | WebSocket |   可选   | 实时数据推送；可通过 Nginx `/ws` 代理 |
 
-> 建议只修改 **外部端口**（`WEB_EXTERNAL_PORT / API_EXTERNAL_PORT / WS_EXTERNAL_PORT`），
-> 容器内部端口保持默认值（3000/3001/3002）。这样无需重新构建镜像，也不会出现 `/api` 500。
+> 只配置主站 Web 的 Nginx 反代即可：前端默认同域访问 `/api`，无需额外暴露或配置 3001/3002。
+> 如需直连 API/WS，可设置 `API_URL` / `WS_URL`，或暴露对应端口。
 
 ### 多架构支持
 

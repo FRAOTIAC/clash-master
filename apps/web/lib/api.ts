@@ -13,8 +13,6 @@ import type {
 
 type RuntimeConfig = {
   API_URL?: string;
-  API_PORT?: string | number;
-  API_HOST?: string;
 };
 
 function getRuntimeConfig(): RuntimeConfig | undefined {
@@ -32,11 +30,6 @@ function resolveApiBase(): string {
   const runtime = getRuntimeConfig();
   if (runtime?.API_URL) {
     return normalizeApiBase(runtime.API_URL);
-  }
-  if (runtime?.API_PORT && typeof window !== "undefined") {
-    const protocol = window.location.protocol;
-    const host = runtime.API_HOST || window.location.hostname;
-    return `${protocol}//${host}:${runtime.API_PORT}/api`;
   }
   const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
   if (envUrl) {
