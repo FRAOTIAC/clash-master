@@ -178,6 +178,44 @@ function FaviconProviderPreview({
           ))}
         </div>
       </div>
+
+      {/* Off Option */}
+      <div
+        className={cn(
+          "flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 rounded-lg border transition-all cursor-pointer",
+          selected === "off"
+            ? "border-primary bg-primary/5"
+            : "border-border hover:bg-muted/50",
+        )}
+        onClick={() => onChange("off")}>
+        {/* Top row: Radio + Icon + Label */}
+        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+          <RadioGroupItem value="off" id="off" className="shrink-0" />
+
+          {/* Provider Icon - Off */}
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
+            <Globe className="w-5 h-5 text-muted-foreground" />
+          </div>
+
+          {/* Label */}
+          <Label
+            htmlFor="off"
+            className="font-medium cursor-pointer flex-1 min-w-0">
+            {t("faviconOff")}
+          </Label>
+        </div>
+
+        {/* Preview Icons - Default placeholders */}
+        <div className="flex items-center gap-2 pl-7 sm:pl-0">
+          {previewDomains.map((domain) => (
+            <div
+              key={domain}
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+            </div>
+          ))}
+        </div>
+      </div>
     </RadioGroup>
   );
 }

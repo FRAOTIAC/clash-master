@@ -64,7 +64,7 @@ export function Favicon({ domain, size = "md", className }: FaviconProps) {
     setLoading(true);
   }, [settings.faviconProvider, domain]);
 
-  if (error || !cleanedDomain) {
+  if (settings.faviconProvider === "off" || error || !cleanedDomain) {
     return (
       <div
         className={cn(

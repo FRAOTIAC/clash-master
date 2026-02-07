@@ -16,6 +16,17 @@ interface UseWebSocketOptions {
   onError?: (error: Event) => void;
 }
 
+type RuntimeConfig = {
+  WS_URL?: string;
+  WS_PORT?: string | number;
+  WS_HOST?: string;
+};
+
+function getRuntimeConfig(): RuntimeConfig | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return (window as any).__RUNTIME_CONFIG__ as RuntimeConfig | undefined;
+}
+
 export function useStatsWebSocket(options: UseWebSocketOptions = {}) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [lastMessage, setLastMessage] = useState<StatsSummary | null>(null);
@@ -34,13 +45,16 @@ export function useStatsWebSocket(options: UseWebSocketOptions = {}) {
     setStatus('connecting');
 
     // Support dynamic WebSocket URL configuration
-    // Priority: NEXT_PUBLIC_WS_URL > host-relative WS > default localhost
-    const wsPort = process.env.NEXT_PUBLIC_WS_PORT || '3002';
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL 
-      ? process.env.NEXT_PUBLIC_WS_URL
-      : typeof window !== 'undefined' 
-        ? `ws://${window.location.hostname}:${wsPort}`
-        : `ws://localhost:${wsPort}`;
+    // Priority: runtime WS_URL > runtime WS_PORT > NEXT_PUBLIC_WS_URL > NEXT_PUBLIC_WS_PORT > default localhost
+    const runtime = getRuntimeConfig();
+    const wsPort = runtime?.WS_PORT || process.env.NEXT_PUBLIC_WS_PORT || '3002';
+    const wsUrl = runtime?.WS_URL
+      ? runtime.WS_URL
+      : process.env.NEXT_PUBLIC_WS_URL
+        ? process.env.NEXT_PUBLIC_WS_URL
+        : typeof window !== 'undefined'
+          ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${runtime?.WS_HOST || window.location.hostname}:${wsPort}`
+          : `ws://localhost:${wsPort}`;
     
     console.log('[WebSocket] Connecting to:', wsUrl);
 

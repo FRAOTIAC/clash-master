@@ -14,7 +14,7 @@
   },
   "header": {
     "title": "Clash Master",
-    "subtitle": "Modern and beautiful traffic analysis tool for Clash"
+    "subtitle": "Modern traffic analysis dashboard for Clash"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -204,7 +204,7 @@
     "title": "About",
     "version": "Version",
     "projectName": "Clash Master",
-    "description": "Modern and beautiful traffic analysis dashboard for OpenClash",
+    "description": "Modern traffic analysis dashboard for Clash",
     "github": "GitHub",
     "openSource": "Clash Master",
     "license": "MIT License",
@@ -308,6 +308,7 @@
     "faviconProviderDescription": "Choose the service used to display website icons in the domain list. favicon.im is recommended for users in China.",
     "faviconGoogle": "Google Favicon",
     "faviconIm": "favicon.im (Recommended for China)",
+    "faviconOff": "Off (Use default icons)",
     "dataRetention": "Data Storage Time",
     "dataRetentionDescription": "Control how long detailed connection records are kept. Domain and IP statistics are always preserved. Longer storage uses more disk space but allows troubleshooting older issues.",
     "retentionPresetMinimal": "Minimal",

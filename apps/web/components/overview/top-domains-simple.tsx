@@ -27,6 +27,7 @@ export const TopDomainsSimple = React.memo(function TopDomainsSimple({
 }: TopDomainsSimpleProps) {
   const t = useTranslations("topDomains");
   const { settings } = useSettings();
+  const faviconDisabled = settings.faviconProvider === "off";
 
   const sortedDomains = useMemo(() => {
     if (!domains?.length) return [];
@@ -119,20 +120,24 @@ export const TopDomainsSimple = React.memo(function TopDomainsSimple({
                 
                 {/* Favicon */}
                 <div className="w-5 h-5 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                  <img
-                    src={getFaviconForDomain(domain.domain)}
-                    alt=""
-                    className="w-4 h-4"
-                    loading="lazy"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `<span class="text-[9px] font-bold text-muted-foreground">${getInitials(domain.domain)}</span>`;
-                      }
-                    }}
-                  />
+                  {faviconDisabled ? (
+                    <Globe className="w-3 h-3 text-muted-foreground" />
+                  ) : (
+                    <img
+                      src={getFaviconForDomain(domain.domain)}
+                      alt=""
+                      className="w-4 h-4"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `<span class="text-[9px] font-bold text-muted-foreground">${getInitials(domain.domain)}</span>`;
+                        }
+                      }}
+                    />
+                  )}
                 </div>
                 
                 <span className="flex-1 text-sm font-medium truncate" title={domain.domain}>

@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Clash Master",
     short_name: "Clash Master",
-    description: "Modern and beautiful traffic analysis dashboard for OpenClash",
+    description: "Modern traffic analysis dashboard for Clash",
     start_url: "/",
     scope: "/",
     display: "standalone",

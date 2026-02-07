@@ -61,7 +61,7 @@ async function main() {
       const connCutoff = new Date(Date.now() - config.connectionLogsDays * 86400000).toISOString();
       const hourlyCutoff = new Date(Date.now() - config.hourlyStatsDays * 86400000).toISOString();
 
-      const deletedLogs = db.deleteOldConnectionLogs(connCutoff);
+      const deletedLogs = db.deleteOldMinuteStats(connCutoff);
       const deletedHourly = db.deleteOldHourlyStats(hourlyCutoff);
 
       if (deletedLogs > 0 || deletedHourly > 0) {

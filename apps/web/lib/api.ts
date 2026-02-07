@@ -11,7 +11,41 @@ import type {
   ProxyTrafficStats,
 } from "@clashmaster/shared";
 
-const API_BASE = "/api";
+type RuntimeConfig = {
+  API_URL?: string;
+  API_PORT?: string | number;
+  API_HOST?: string;
+};
+
+function getRuntimeConfig(): RuntimeConfig | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as any).__RUNTIME_CONFIG__ as RuntimeConfig | undefined;
+}
+
+function normalizeApiBase(url: string): string {
+  if (!url) return "/api";
+  const trimmed = url.replace(/\/+$/, "");
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+function resolveApiBase(): string {
+  const runtime = getRuntimeConfig();
+  if (runtime?.API_URL) {
+    return normalizeApiBase(runtime.API_URL);
+  }
+  if (runtime?.API_PORT && typeof window !== "undefined") {
+    const protocol = window.location.protocol;
+    const host = runtime.API_HOST || window.location.hostname;
+    return `${protocol}//${host}:${runtime.API_PORT}/api`;
+  }
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
+  if (envUrl) {
+    return normalizeApiBase(envUrl);
+  }
+  return "/api";
+}
+
+const API_BASE = resolveApiBase();
 
 async function fetchJson<T>(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any): Promise<T> {
   const options: RequestInit = {

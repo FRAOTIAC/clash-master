@@ -229,7 +229,7 @@ export function createCollector(
   let lastBroadcastTime = 0;
   const broadcastThrottleMs = 500;
   let flushInterval: NodeJS.Timeout | null = null;
-  const FLUSH_INTERVAL_MS = parseInt(process.env.FLUSH_INTERVAL_MS || '2000');
+  const FLUSH_INTERVAL_MS = parseInt(process.env.FLUSH_INTERVAL_MS || '5000');
 
   // Start batch flush interval
   flushInterval = setInterval(() => {

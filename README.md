@@ -57,8 +57,10 @@ services:
       - ./data:/app/data
     environment:
       - NODE_ENV=production
-      - API_PORT=3001
-      - COLLECTOR_WS_PORT=3002
+      # 外部端口（可选，默认即为 3000/3001/3002）
+      - WEB_EXTERNAL_PORT=3000
+      - API_EXTERNAL_PORT=3001
+      - WS_EXTERNAL_PORT=3002
       - DB_PATH=/app/data/stats.db
 ```
 
@@ -84,6 +86,9 @@ docker run -d \
 ```
 
 访问 <http://localhost:3000>
+
+> 如需自定义外部端口（docker run），请额外传入：
+> `-e WEB_EXTERNAL_PORT=8080 -e API_EXTERNAL_PORT=8081 -e WS_EXTERNAL_PORT=8082`
 
 ### 方式三：一键脚本
 
@@ -166,9 +171,9 @@ ports:
   - "8080:3000" # 外部 8080 → 内部 3000
   - "8081:3001" # 外部 8081 → 内部 3001
   - "8082:3002" # 外部 8082 → 内部 3002
-environment:
-  - NEXT_PUBLIC_WS_PORT=8082 # 告诉前端使用 8082
 ```
+
+> 说明：前端会在运行时读取外部端口配置，无需再设置 `NEXT_PUBLIC_WS_PORT`。
 
 ### 方案 3：使用一键脚本
 
@@ -187,6 +192,9 @@ curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh |
 | 3000 | Web 界面  |  ✅  | 前端访问端口  |
 | 3001 | API 接口  |  ✅  | REST API 端口 |
 | 3002 | WebSocket |  ✅  | 实时数据传输  |
+
+> 建议只修改 **外部端口**（`WEB_EXTERNAL_PORT / API_EXTERNAL_PORT / WS_EXTERNAL_PORT`），
+> 容器内部端口保持默认值（3000/3001/3002）。这样无需重新构建镜像，也不会出现 `/api` 500。
 
 ### 多架构支持
 

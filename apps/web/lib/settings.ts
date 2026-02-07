@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useSyncExternalStore, useMemo } from "react";
 
-export type FaviconProvider = "google" | "faviconim";
+export type FaviconProvider = "google" | "faviconim" | "off";
 
 export interface UserSettings {
   faviconProvider: FaviconProvider;
@@ -133,6 +133,9 @@ export function useSettings() {
 
 // Generate favicon URL based on provider
 export function getFaviconUrl(domain: string, provider: FaviconProvider): string {
+  if (provider === "off") {
+    return "";
+  }
   const cleanDomain = domain
     .replace(/^https?:\/\//, "")
     .replace(/^www\./, "")

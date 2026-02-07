@@ -111,7 +111,7 @@ export class CleanupService {
   }
 
   /**
-   * Clean up old connection logs
+   * Clean up old minute stats (replaced connection logs)
    */
   private cleanupConnectionLogs(): number {
     const config = this.getConfig();
@@ -119,7 +119,7 @@ export class CleanupService {
     cutoffDate.setDate(cutoffDate.getDate() - config.connectionLogsDays);
     const cutoff = cutoffDate.toISOString();
 
-    return this.db.deleteOldConnectionLogs(cutoff);
+    return this.db.deleteOldMinuteStats(cutoff);
   }
 
   /**

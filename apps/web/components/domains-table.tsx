@@ -16,6 +16,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DomainsTableProps {
   activeBackendId?: number;
@@ -313,6 +319,11 @@ export function DomainsTable({ activeBackendId }: DomainsTableProps) {
         ) : (
           data.map((domain, index) => {
             const isExpanded = expandedDomain === domain.domain;
+            const fullChain = domain.chains && domain.chains.length > 0 ? domain.chains[0] : "";
+            const lastProxy = fullChain ? fullChain.split(" > ").pop()?.trim() || fullChain : "";
+            const chainTooltip = domain.chains && domain.chains.length > 0
+              ? domain.chains.map((chain, idx) => (idx === 0 ? chain : `(${idx + 1}) ${chain}`)).join("\n")
+              : "";
 
             return (
               <div key={domain.domain} className="group">
@@ -338,20 +349,31 @@ export function DomainsTable({ activeBackendId }: DomainsTableProps) {
                   {/* Proxy */}
                   <div className="col-span-2 flex items-center gap-1.5 min-w-0">
                     {domain.chains && domain.chains.length > 0 ? (
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[11px] font-medium truncate max-w-[120px]"
-                          title={domain.chains[0]}
-                        >
-                          <Waypoints className="h-2.5 w-2.5 shrink-0" />
-                          {domain.chains[0]}
-                        </span>
-                        {domain.chains.length > 1 && (
-                          <span className="text-[11px] text-muted-foreground shrink-0">
-                            +{domain.chains.length - 1}
-                          </span>
-                        )}
-                      </div>
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1.5 min-w-0">
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-secondary/60 text-foreground dark:bg-secondary/40 dark:text-foreground/80 text-[11px] font-medium truncate max-w-[120px]"
+                              >
+                                <Waypoints className="h-2.5 w-2.5 shrink-0" />
+                                {lastProxy}
+                              </span>
+                              {domain.chains.length > 1 && (
+                                <span className="text-[11px] text-muted-foreground shrink-0">
+                                  +{domain.chains.length - 1}
+                                </span>
+                              )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className="max-w-[360px] whitespace-pre-wrap"
+                          >
+                            {chainTooltip}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ) : (
                       <span className="text-xs text-muted-foreground">-</span>
                     )}
@@ -447,18 +469,31 @@ export function DomainsTable({ activeBackendId }: DomainsTableProps) {
                   {/* Row 2: Proxy tag - full width, no truncation */}
                   {domain.chains && domain.chains.length > 0 && (
                     <div className="flex items-center gap-1.5 mb-2 pl-[30px]">
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[11px] font-medium whitespace-nowrap"
-                        title={domain.chains[0]}
-                      >
-                        <Waypoints className="h-2.5 w-2.5 shrink-0" />
-                        {domain.chains[0]}
-                      </span>
-                      {domain.chains.length > 1 && (
-                        <span className="text-[11px] text-muted-foreground shrink-0">
-                          +{domain.chains.length - 1}
-                        </span>
-                      )}
+                      <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary/60 text-foreground dark:bg-secondary/40 dark:text-foreground/80 text-[11px] font-medium whitespace-nowrap"
+                              >
+                                <Waypoints className="h-2.5 w-2.5 shrink-0" />
+                                {lastProxy}
+                              </span>
+                              {domain.chains.length > 1 && (
+                                <span className="text-[11px] text-muted-foreground shrink-0">
+                                  +{domain.chains.length - 1}
+                                </span>
+                              )}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className="max-w-[360px] whitespace-pre-wrap"
+                          >
+                            {chainTooltip}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   )}
 
@@ -535,7 +570,7 @@ export function DomainsTable({ activeBackendId }: DomainsTableProps) {
                             {domain.chains.map((chain) => (
                               <span
                                 key={chain}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-medium max-w-full min-w-0"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/60 text-foreground dark:bg-secondary/40 dark:text-foreground/80 text-xs font-medium max-w-full min-w-0"
                                 title={chain}
                               >
                                 <Waypoints className="h-3 w-3 shrink-0" />

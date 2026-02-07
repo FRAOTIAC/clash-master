@@ -76,7 +76,7 @@ VOLUME ["/app/data"]
 
 # Health check - verify API is responding
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget -q --spider http://127.0.0.1:3001/health || exit 1
+    CMD ["/bin/sh", "-c", "wget -q --spider http://127.0.0.1:${API_PORT}/health || exit 1"]
 
 # Start script
 COPY docker-start.sh ./

@@ -72,8 +72,10 @@ services:
       - ./data:/app/data
     environment:
       - NODE_ENV=production
-      - API_PORT=3001
-      - COLLECTOR_WS_PORT=3002
+      # External ports (optional; defaults are 3000/3001/3002)
+      - WEB_EXTERNAL_PORT=3000
+      - API_EXTERNAL_PORT=3001
+      - WS_EXTERNAL_PORT=3002
       - DB_PATH=/app/data/stats.db
 ```
 
@@ -99,6 +101,9 @@ docker run -d \
 ```
 
 Open <http://localhost:3000> to get started.
+
+> If you use custom external ports with `docker run`, also pass:
+> `-e WEB_EXTERNAL_PORT=8080 -e API_EXTERNAL_PORT=8081 -e WS_EXTERNAL_PORT=8082`
 
 ### Option 3: One-Click Script
 
@@ -181,9 +186,9 @@ ports:
   - "8080:3000" # External 8080 → Internal 3000
   - "8081:3001" # External 8081 → Internal 3001
   - "8082:3002" # External 8082 → Internal 3002
-environment:
-  - NEXT_PUBLIC_WS_PORT=8082 # Tell frontend to use 8082
 ```
+
+> Note: the frontend reads external ports at runtime, so `NEXT_PUBLIC_WS_PORT` is no longer required.
 
 ### Solution 3: Use One-Click Script
 
@@ -202,6 +207,9 @@ The script will automatically detect and suggest available ports.
 | 3000 |  Web UI   |    ✅    | Frontend access port        |
 | 3001 |    API    |    ✅    | REST API port               |
 | 3002 | WebSocket |    ✅    | Real-time data transmission |
+
+> Recommended: change **external ports only** (`WEB_EXTERNAL_PORT / API_EXTERNAL_PORT / WS_EXTERNAL_PORT`)
+> and keep internal ports at 3000/3001/3002. This avoids rebuilds and prevents `/api` 500 errors.
 
 ### Multi-Architecture Support
 
