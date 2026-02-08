@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -13,19 +13,28 @@ import {
   LabelList,
 } from "recharts";
 import { useTranslations } from "next-intl";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Favicon } from "@/components/favicon";
 import { formatBytes } from "@/lib/utils";
+import { api } from "@/lib/api";
 import type { DomainStats } from "@clashmaster/shared";
 
 interface TopDomainsChartProps {
-  data: DomainStats[];
+  activeBackendId?: number;
 }
 
 const TOP_OPTIONS = [10, 20, 50, 100] as const;
 type TopOption = (typeof TOP_OPTIONS)[number];
+
+// Dynamic height configuration based on topN
+const CHART_CONFIG = {
+  10: { height: 350, barSize: 32, showAllLabels: true },
+  20: { height: 450, barSize: 24, showAllLabels: true },
+  50: { height: 700, barSize: 18, showAllLabels: true },
+  100: { height: 1200, barSize: 14, showAllLabels: true },
+} as const;
 
 // Vibrant color palette for bars
 const COLORS = [
@@ -58,15 +67,48 @@ function renderCustomBarLabel(props: any) {
   );
 }
 
-export function TopDomainsChart({ data }: TopDomainsChartProps) {
+export function TopDomainsChart({ activeBackendId }: TopDomainsChartProps) {
   const t = useTranslations("domains");
   const commonT = useTranslations("stats");
   const [topN, setTopN] = useState<TopOption>(10);
+  const [domains, setDomains] = useState<DomainStats[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   // Track whether this is the initial render to only animate on first load
   const hasRenderedRef = useRef(false);
   // Track container width to hide labels on small screens
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+
+  // Fetch domains data based on topN selection
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await api.getDomains(activeBackendId, {
+        offset: 0,
+        limit: topN,
+        sortBy: "totalDownload",
+        sortOrder: "desc",
+      });
+      setDomains(result.data);
+    } catch (error) {
+      console.error("Failed to fetch top domains:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeBackendId, topN]);
+
+  // Fetch data when topN or activeBackendId changes
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Auto-refresh every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchData();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -84,13 +126,13 @@ export function TopDomainsChart({ data }: TopDomainsChartProps) {
   // Show labels only when container is wide enough (> 400px)
   const showLabels = containerWidth > 400;
 
+  // Get chart configuration based on topN
+  const config = CHART_CONFIG[topN];
+
   const chartData = useMemo(() => {
-    if (!data) return [];
-    const result = data.slice(0, topN).map((domain, index) => ({
-      name:
-        domain.domain.length > 15
-          ? domain.domain.slice(0, 15) + "..."
-          : domain.domain,
+    if (!domains || domains.length === 0) return [];
+    const result = domains.map((domain: DomainStats, index: number) => ({
+      name: domain.domain,
       fullDomain: domain.domain,
       total: domain.totalDownload + domain.totalUpload,
       download: domain.totalDownload,
@@ -104,7 +146,7 @@ export function TopDomainsChart({ data }: TopDomainsChartProps) {
       }, 800);
     }
     return result;
-  }, [data, topN]);
+  }, [domains]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -173,7 +215,10 @@ export function TopDomainsChart({ data }: TopDomainsChartProps) {
         </div>
       </CardHeader>
       <CardContent ref={containerRef}>
-        <div className="h-[350px] w-full min-w-0 overflow-hidden sm:overflow-visible">
+        <div 
+          className="w-full min-w-0 overflow-hidden sm:overflow-visible transition-all duration-500 ease-in-out"
+          style={{ height: `${config.height}px` }}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
@@ -200,8 +245,8 @@ export function TopDomainsChart({ data }: TopDomainsChartProps) {
               <YAxis
                 type="category"
                 dataKey="name"
-                width={70}
-                tick={{ fontSize: 10, fill: "currentColor" }}
+                width={180}
+                tick={{ fontSize: 11, fill: "currentColor" }}
                 tickLine={false}
                 axisLine={false}
                 interval={0}
@@ -213,7 +258,7 @@ export function TopDomainsChart({ data }: TopDomainsChartProps) {
               <Bar
                 dataKey="total"
                 radius={[0, 4, 4, 0]}
-                maxBarSize={32}
+                maxBarSize={config.barSize}
                 isAnimationActive={!hasRenderedRef.current}
                 animationDuration={600}>
                 {chartData.map((entry, index) => (

@@ -18,6 +18,7 @@ import {
   Sun,
   Monitor,
   Info,
+  MoreVertical,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
@@ -27,6 +28,7 @@ import { OverviewTab } from "@/components/overview";
 import { TopDomainsChart } from "@/components/top-domains-chart";
 import { ProxyStatsChart } from "@/components/proxy-stats-chart";
 import { InteractiveProxyStats } from "@/components/interactive-proxy-stats";
+import { InteractiveRuleStats } from "@/components/interactive-rule-stats";
 import { RuleChainChart } from "@/components/rule-chain-chart";
 import { WorldTrafficMap } from "@/components/world-traffic-map";
 import { CountryTrafficList } from "@/components/country-traffic-list";
@@ -109,23 +111,25 @@ const OverviewContent = memo(function OverviewContent({
 
 const DomainsContent = memo(function DomainsContent({
   data,
+  activeBackendId,
 }: {
   data: StatsSummary | null;
+  activeBackendId?: number;
 }) {
   const t = useTranslations("domains");
   return (
     <div className="space-y-6">
-      <TopDomainsChart data={data?.topDomains || []} />
+      <TopDomainsChart activeBackendId={activeBackendId} />
       <Tabs defaultValue="domains" className="w-full">
         <TabsList className="glass">
           <TabsTrigger value="domains">{t("domainList")}</TabsTrigger>
           <TabsTrigger value="ips">{t("ipList")}</TabsTrigger>
         </TabsList>
         <TabsContent value="domains" className="overflow-hidden">
-          <DomainsTable data={data?.topDomains || []} />
+          <DomainsTable activeBackendId={activeBackendId} />
         </TabsContent>
         <TabsContent value="ips" className="overflow-hidden">
-          <IPsTable data={data?.topIPs || []} />
+          <IPsTable activeBackendId={activeBackendId} />
         </TabsContent>
       </Tabs>
     </div>
@@ -174,12 +178,17 @@ const ProxiesContent = memo(function ProxiesContent({
 
 const RulesContent = memo(function RulesContent({
   data,
+  activeBackendId,
 }: {
   data: StatsSummary | null;
+  activeBackendId?: number;
 }) {
   return (
     <div className="space-y-6">
-      <RuleChainChart data={data?.ruleStats || []} />
+      <InteractiveRuleStats
+        data={data?.ruleStats || []}
+        activeBackendId={activeBackendId}
+      />
     </div>
   );
 });
@@ -268,20 +277,10 @@ export default function DashboardPage() {
           api.getCountries(backendId, 50, timeRange),
         ]);
 
-        // Check if data actually changed by comparing JSON (include backendId to detect backend switch)
-        const newDataJson = JSON.stringify({
-          backendId,
-          totalDownload: stats?.totalDownload,
-          totalUpload: stats?.totalUpload,
-          totalDomains: stats?.totalDomains,
-        });
-
-        if (newDataJson !== lastDataRef.current) {
-          lastDataRef.current = newDataJson;
-          setData(stats);
-          setCountryData(countries);
-          setLastUpdated(new Date());
-        }
+        // Always update data on successful fetch
+        setData(stats);
+        setCountryData(countries);
+        setLastUpdated(new Date());
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
@@ -341,7 +340,7 @@ export default function DashboardPage() {
           />
         );
       case "domains":
-        return <DomainsContent data={data} />;
+        return <DomainsContent data={data} activeBackendId={activeBackend?.id} />;
       case "countries":
         return <CountriesContent countryData={countryData} />;
       case "proxies":
@@ -349,7 +348,7 @@ export default function DashboardPage() {
           <ProxiesContent data={data} activeBackendId={activeBackend?.id} />
         );
       case "rules":
-        return <RulesContent data={data} />;
+        return <RulesContent data={data} activeBackendId={activeBackend?.id} />;
       case "network":
         return <NetworkContent />;
       default:
@@ -367,7 +366,11 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} onBackendChange={handleBackendChange} />
+      <Navigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onBackendChange={handleBackendChange}
+      />
 
       <main className="flex-1 min-w-0 lg:ml-0">
         <header className="sticky top-0 z-40 lg:static border-b border-border/40 bg-background/80 backdrop-blur-md">
@@ -384,14 +387,19 @@ export default function DashboardPage() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h2 className="hidden lg:block font-semibold">{t(activeTab)}</h2>
+                <h2 className="hidden lg:block font-semibold">
+                  {t(activeTab)}
+                </h2>
               </div>
 
               {/* Backend Selector */}
               {backends.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-1 px-2 sm:px-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 px-2 sm:px-3">
                       <Server className="w-4 h-4" />
                       <span className="max-w-[80px] sm:max-w-[120px] truncate">
                         {activeBackend?.name || backendT("selectBackend")}
@@ -417,18 +425,18 @@ export default function DashboardPage() {
                           {backend.name}
                         </span>
                         <div className="flex items-center gap-1">
-                          {backend.is_active && (
+                          {!!backend.is_active && (
                             <Badge
                               variant="default"
                               className="text-[10px] h-5">
                               {backendT("displaying")}
                             </Badge>
                           )}
-                          {backend.listening && !backend.is_active && (
+                          {!!backend.listening && !backend.is_active && (
                             <Badge
                               variant="secondary"
-                              className="text-[10px] h-5">
-                              <Radio className="w-2 h-2 mr-1" />
+                              className="text-[10px] h-5 gap-1">
+                              <Radio className="w-2 h-2" />
                               {backendT("collecting")}
                             </Badge>
                           )}
@@ -438,7 +446,7 @@ export default function DashboardPage() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => setShowBackendDialog(true)}>
-                      <Server className="w-4 h-4 mr-2" />
+                      <Settings className="w-4 h-4 mr-2" />
                       {backendT("manageBackends")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -452,13 +460,13 @@ export default function DashboardPage() {
                     <Badge
                       key={backend.id}
                       variant="outline"
-                      className="text-[10px] h-5 gap-1 border-green-500/30 text-green-600">
+                      className="text-[10px] h-5 gap-1 px-1.5 border-green-500/30 text-green-600">
                       <Radio className="w-2 h-2" />
                       {backend.name}
                     </Badge>
                   ))}
                   {listeningBackends.length > 3 && (
-                    <Badge variant="outline" className="text-[10px] h-5">
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">
                       +{listeningBackends.length - 3}
                     </Badge>
                   )}
@@ -493,57 +501,23 @@ export default function DashboardPage() {
                   )}
                 </label>
               </div>
-              
+
               {/* Desktop: Language & Theme */}
               <div className="hidden sm:flex items-center gap-1">
                 <LanguageSwitcher />
                 <ThemeToggle />
               </div>
-              
-              {/* Mobile: Settings Dropdown */}
+
+              {/* Mobile: More Options Dropdown */}
               <div className="sm:hidden">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-9 w-9">
-                      <Settings className="w-5 h-5" />
+                      <MoreVertical className="w-5 h-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    {/* Backend Selector for Mobile */}
-                    {backends.length > 0 && (
-                      <>
-                        <DropdownMenuLabel className="flex items-center gap-2">
-                          <Server className="w-4 h-4" />
-                          {backendT("backendsTab")}
-                        </DropdownMenuLabel>
-                        {backends.map((backend) => (
-                          <DropdownMenuItem
-                            key={backend.id}
-                            onClick={() => handleSwitchBackend(backend.id)}
-                            className="flex items-center justify-between">
-                            <span className={cn(
-                              "truncate",
-                              backend.is_active && "font-medium"
-                            )}>
-                              {backend.name}
-                            </span>
-                            {backend.is_active && (
-                              <Badge variant="default" className="text-[10px] h-5">
-                                {backendT("displaying")}
-                              </Badge>
-                            )}
-                          </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setShowBackendDialog(true)}>
-                          <Server className="w-4 h-4 mr-2" />
-                          {backendT("manageBackends")}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    
-                    {/* Auto Refresh Toggle */}
+                    {/* Auto Refresh Toggle -->
                     <DropdownMenuLabel className="flex items-center gap-2">
                       <RefreshCw className="w-4 h-4" />
                       {dashboardT("refresh")}
@@ -558,46 +532,69 @@ export default function DashboardPage() {
                     
                     {/* Theme Selection */}
                     <DropdownMenuLabel className="flex items-center gap-2">
-                      {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                      {theme === "dark" ? (
+                        <Moon className="w-4 h-4" />
+                      ) : (
+                        <Sun className="w-4 h-4" />
+                      )}
                       Theme
                     </DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => setTheme('light')} className={theme === 'light' ? 'bg-muted' : ''}>
+                    <DropdownMenuItem
+                      onClick={() => setTheme("light")}
+                      className={theme === "light" ? "bg-muted" : ""}>
                       <Sun className="w-4 h-4 mr-2 text-amber-500" />
-                      Light {theme === 'light' && '✓'}
+                      Light {theme === "light" && "✓"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme('dark')} className={theme === 'dark' ? 'bg-muted' : ''}>
+                    <DropdownMenuItem
+                      onClick={() => setTheme("dark")}
+                      className={theme === "dark" ? "bg-muted" : ""}>
                       <Moon className="w-4 h-4 mr-2 text-indigo-500" />
-                      Dark {theme === 'dark' && '✓'}
+                      Dark {theme === "dark" && "✓"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setTheme('system')} className={theme === 'system' ? 'bg-muted' : ''}>
+                    <DropdownMenuItem
+                      onClick={() => setTheme("system")}
+                      className={theme === "system" ? "bg-muted" : ""}>
                       <Monitor className="w-4 h-4 mr-2 text-slate-500" />
-                      System {theme === 'system' && '✓'}
+                      System {theme === "system" && "✓"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    
+
                     {/* Language Selection */}
                     <DropdownMenuLabel className="flex items-center gap-2">
                       <Globe className="w-4 h-4" />
                       Language
                     </DropdownMenuLabel>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => {
-                        const newPathname = pathname.replace(`/${locale}`, '/en');
+                        const newPathname = pathname.replace(
+                          `/${locale}`,
+                          "/en",
+                        );
                         router.push(newPathname);
                       }}
-                      className={locale === 'en' ? 'bg-muted' : ''}>
-                      English {locale === 'en' && '✓'}
+                      className={locale === "en" ? "bg-muted" : ""}>
+                      English {locale === "en" && "✓"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => {
-                        const newPathname = pathname.replace(`/${locale}`, '/zh');
+                        const newPathname = pathname.replace(
+                          `/${locale}`,
+                          "/zh",
+                        );
                         router.push(newPathname);
                       }}
-                      className={locale === 'zh' ? 'bg-muted' : ''}>
-                      中文 {locale === 'zh' && '✓'}
+                      className={locale === "zh" ? "bg-muted" : ""}>
+                      中文 {locale === "zh" && "✓"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    
+
+                    {/* Settings */}
+                    <DropdownMenuItem
+                      onClick={() => setShowBackendDialog(true)}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      {backendT("manageBackends")}
+                    </DropdownMenuItem>
+
                     {/* About */}
                     <DropdownMenuItem onClick={() => setShowAboutDialog(true)}>
                       <Info className="w-4 h-4 mr-2 text-primary" />
@@ -606,7 +603,7 @@ export default function DashboardPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              
+
               {/* Refresh Button - Both Desktop & Mobile */}
               <Button
                 variant="outline"
@@ -640,10 +637,7 @@ export default function DashboardPage() {
       />
 
       {/* About Dialog */}
-      <AboutDialog
-        open={showAboutDialog}
-        onOpenChange={setShowAboutDialog}
-      />
+      <AboutDialog open={showAboutDialog} onOpenChange={setShowAboutDialog} />
     </div>
   );
 }

@@ -11,7 +11,34 @@ import type {
   ProxyTrafficStats,
 } from "@clashmaster/shared";
 
-const API_BASE = "/api";
+type RuntimeConfig = {
+  API_URL?: string;
+};
+
+function getRuntimeConfig(): RuntimeConfig | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as any).__RUNTIME_CONFIG__ as RuntimeConfig | undefined;
+}
+
+function normalizeApiBase(url: string): string {
+  if (!url) return "/api";
+  const trimmed = url.replace(/\/+$/, "");
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+function resolveApiBase(): string {
+  const runtime = getRuntimeConfig();
+  if (runtime?.API_URL) {
+    return normalizeApiBase(runtime.API_URL);
+  }
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
+  if (envUrl) {
+    return normalizeApiBase(envUrl);
+  }
+  return "/api";
+}
+
+const API_BASE = resolveApiBase();
 
 async function fetchJson<T>(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', body?: any): Promise<T> {
   const options: RequestInit = {
@@ -54,6 +81,36 @@ export interface Backend {
   updated_at: string;
 }
 
+export interface ClashProviderProxy {
+  alive: boolean;
+  name: string;
+  type: string;
+  now?: string;
+  all?: string[];
+  history?: Array<{ time: string; delay: number }>;
+}
+
+export interface ClashProvider {
+  name: string;
+  type: string;
+  vehicleType: string;
+  proxies: ClashProviderProxy[];
+}
+
+export interface ClashProvidersResponse {
+  providers: Record<string, ClashProvider>;
+}
+
+export interface ClashRule {
+  type: string;
+  payload: string;
+  proxy: string;
+}
+
+export interface ClashRulesResponse {
+  rules: ClashRule[];
+}
+
 function buildUrl(base: string, params: Record<string, string | number | undefined>): string {
   // Use simple URL construction for client-side relative URLs
   const searchParams = new URLSearchParams();
@@ -87,21 +144,21 @@ export const api = {
       backendCount: number;
     }>(`${API_BASE}/stats/global`),
     
-  getDomains: (backendId?: number, limit = 50, range?: TimeRange) =>
-    fetchJson<DomainStats[]>(buildUrl(`${API_BASE}/stats/domains`, {
-      backendId,
-      limit,
-      start: range?.start,
-      end: range?.end,
-    })),
-    
-  getIPs: (backendId?: number, limit = 50, range?: TimeRange) =>
-    fetchJson<IPStats[]>(buildUrl(`${API_BASE}/stats/ips`, {
-      backendId,
-      limit,
-      start: range?.start,
-      end: range?.end,
-    })),
+  getDomains: (backendId?: number, opts?: {
+    offset?: number; limit?: number;
+    sortBy?: string; sortOrder?: string; search?: string;
+  }) =>
+    fetchJson<{ data: DomainStats[]; total: number }>(
+      buildUrl(`${API_BASE}/stats/domains`, { backendId, ...opts })
+    ),
+
+  getIPs: (backendId?: number, opts?: {
+    offset?: number; limit?: number;
+    sortBy?: string; sortOrder?: string; search?: string;
+  }) =>
+    fetchJson<{ data: IPStats[]; total: number }>(
+      buildUrl(`${API_BASE}/stats/ips`, { backendId, ...opts })
+    ),
     
   getProxies: (backendId?: number, limit = 50, range?: TimeRange) =>
     fetchJson<ProxyStats[]>(buildUrl(`${API_BASE}/stats/proxies`, {
@@ -188,6 +245,37 @@ export const api = {
       buildUrl(`${API_BASE}/stats/proxies/ips`, { chain, backendId })
     ),
 
+  getRuleDomains: (rule: string, backendId?: number) =>
+    fetchJson<DomainStats[]>(
+      buildUrl(`${API_BASE}/stats/rules/domains`, { rule, backendId })
+    ),
+
+  getRuleIPs: (rule: string, backendId?: number) =>
+    fetchJson<IPStats[]>(
+      buildUrl(`${API_BASE}/stats/rules/ips`, { rule, backendId })
+    ),
+
+  getRuleChainFlow: (rule: string, backendId?: number) =>
+    fetchJson<{ nodes: Array<{ name: string; totalUpload: number; totalDownload: number; totalConnections: number }>; links: Array<{ source: number; target: number }> }>(
+      buildUrl(`${API_BASE}/stats/rules/chain-flow`, { rule, backendId })
+    ),
+
+  getAllRuleChainFlows: (backendId?: number) =>
+    fetchJson<{
+      nodes: Array<{ name: string; layer: number; nodeType: 'rule' | 'group' | 'proxy'; totalUpload: number; totalDownload: number; totalConnections: number; rules: string[] }>;
+      links: Array<{ source: number; target: number; rules: string[] }>;
+      rulePaths: Record<string, { nodeIndices: number[]; linkIndices: number[] }>;
+      maxLayer: number;
+    }>(
+      buildUrl(`${API_BASE}/stats/rules/chain-flow-all`, { backendId })
+    ),
+
+  getClashProviders: (backendId?: number) =>
+    fetchJson<ClashProvidersResponse>(buildUrl(`${API_BASE}/clash/providers/proxies`, { backendId })),
+
+  getClashRules: (backendId?: number) =>
+    fetchJson<ClashRulesResponse>(buildUrl(`${API_BASE}/clash/rules`, { backendId })),
+
   search: (q: string) =>
     fetchJson<DomainStats[]>(
       `${API_BASE}/search?q=${encodeURIComponent(q)}`
@@ -223,6 +311,9 @@ export const api = {
     
   testBackend: (url: string, token?: string) =>
     fetchJson<{ success: boolean; message: string }>(`${API_BASE}/backends/test`, 'POST', { url, token }),
+
+  testBackendById: (id: number) =>
+    fetchJson<{ success: boolean; message: string }>(`${API_BASE}/backends/${id}/test`, 'POST'),
     
   // Database management
   getDbStats: () =>
@@ -233,6 +324,12 @@ export const api = {
 
   vacuumDatabase: () =>
     fetchJson<{ message: string }>(`${API_BASE}/db/vacuum`, 'POST'),
+
+  getRetentionConfig: () =>
+    fetchJson<{ connectionLogsDays: number; hourlyStatsDays: number; autoCleanup: boolean }>(`${API_BASE}/db/retention`),
+
+  updateRetentionConfig: (config: { connectionLogsDays: number; hourlyStatsDays: number; autoCleanup?: boolean }) =>
+    fetchJson<{ message: string }>(`${API_BASE}/db/retention`, 'PUT', config),
 };
 
 // Helper functions for time range

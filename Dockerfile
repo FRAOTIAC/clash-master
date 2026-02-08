@@ -33,6 +33,11 @@ RUN pnpm --filter @clashmaster/collector build
 ENV NODE_ENV=production
 RUN pnpm --filter @clashmaster/web build
 
+# Create a minimal, deployable bundle for collector (production deps only)
+RUN pnpm --filter @clashmaster/collector deploy --prod /app/apps/collector-deploy && \
+    mkdir -p /app/apps/collector-deploy/dist && \
+    cp -r /app/apps/collector/dist/* /app/apps/collector-deploy/dist/
+
 # Production stage
 FROM node:22-alpine AS production
 
@@ -51,21 +56,15 @@ ENV NODE_ENV=production \
 # Ensure data directory exists
 RUN mkdir -p /app/data
 
-# Copy collector (with its node_modules for runtime dependencies)
-COPY --from=base /app/apps/collector/dist ./apps/collector/dist
-COPY --from=base /app/apps/collector/package.json ./apps/collector/
-COPY --from=base /app/apps/collector/node_modules ./apps/collector/node_modules
+# Copy collector (deploy bundle with production deps)
+COPY --from=base /app/apps/collector-deploy ./apps/collector
 
 # Copy web (Next.js standalone output)
 COPY --from=base /app/apps/web/.next/standalone ./apps/web/.next/standalone
 COPY --from=base /app/apps/web/.next/static ./apps/web/.next/standalone/apps/web/.next/static
 COPY --from=base /app/apps/web/public ./apps/web/.next/standalone/apps/web/public
 
-# Copy packages/shared (for collector dependencies)
-COPY --from=base /app/packages/shared ./packages/shared
-
-# Copy root node_modules for workspace dependencies
-COPY --from=base /app/node_modules ./node_modules
+# Copy root package.json (optional, for reference)
 COPY --from=base /app/package.json ./
 
 # Expose ports
@@ -76,7 +75,7 @@ VOLUME ["/app/data"]
 
 # Health check - verify API is responding
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget -q --spider http://127.0.0.1:3001/health || exit 1
+    CMD ["/bin/sh", "-c", "wget -q --spider http://127.0.0.1:${API_PORT}/health || exit 1"]
 
 # Start script
 COPY docker-start.sh ./

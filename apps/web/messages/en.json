@@ -14,7 +14,7 @@
   },
   "header": {
     "title": "Clash Master",
-    "subtitle": "Modern and beautiful traffic analysis tool for Clash"
+    "subtitle": "Modern traffic analysis dashboard for Clash"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -168,9 +168,20 @@
   },
   "rules": {
     "title": "Rules",
-    "distribution": "Rule Chain Distribution",
+    "distribution": "Rule Traffic Distribution",
+    "ruleList": "Rule List",
+    "topDomains": "Top Domains",
     "description": "Traffic distribution by matching rules and their final proxy nodes",
-    "connections": "conn"
+    "connections": "conn",
+    "noData": "No data",
+    "total": "Total",
+    "download": "Download",
+    "upload": "Upload",
+    "chainFlow": "Rule Chain Flow",
+    "loadingChainFlow": "Loading chain flow...",
+    "showAll": "Panorama",
+    "activePolicy": "All Policies",
+    "noTrafficRecord": "No traffic record"
   },
   "network": {
     "title": "Network",
@@ -187,11 +198,15 @@
     "low": "Low",
     "high": "High"
   },
+  "pwa": {
+    "installApp": "INSTALL",
+    "tooltip": "Install as a desktop app for faster access and a native experience"
+  },
   "about": {
     "title": "About",
     "version": "Version",
     "projectName": "Clash Master",
-    "description": "Modern and beautiful traffic analysis dashboard for OpenClash",
+    "description": "Modern traffic analysis dashboard for Clash",
     "github": "GitHub",
     "openSource": "Clash Master",
     "license": "MIT License",
@@ -206,6 +221,8 @@
     "viewOnGitHub": "View on GitHub"
   },
   "common": {
+    "daysSuffix": "d ago",
+    "days": "days",
     "search": "Search",
     "cancel": "Cancel",
     "close": "Close",
@@ -254,6 +271,7 @@
     "useSsl": "Use HTTPS",
     "namePlaceholder": "e.g., Router",
     "tokenPlaceholder": "Optional, if set please fill in",
+    "tokenKeepPlaceholder": "Token already set, leave blank to keep",
     "active": "Active",
     "disabled": "Disabled",
     "setActive": "Set Active",
@@ -285,8 +303,29 @@
     "collect": "Collect",
     "setDisplay": "Set Display",
     "selectBackend": "Select Backend",
-    "manageBackends": "Manage Backends",
+    "manageBackends": "Settings",
     "firstBackendAutoActive": "First backend automatically set as active",
-    "verificationFailed": "Backend verification failed. Please check the host address and token."
+    "verificationFailed": "Backend verification failed. Please check the host address and token.",
+    "preferencesTab": "Preferences",
+    "faviconProvider": "Favicon Provider",
+    "faviconProviderDescription": "Choose the service used to display website icons in the domain list. favicon.im is recommended for users in China.",
+    "faviconGoogle": "Google Favicon",
+    "faviconIm": "favicon.im (Recommended for China)",
+    "faviconOff": "Off (Use default icons)",
+    "dataRetention": "Data Storage Time",
+    "dataRetentionDescription": "Control how long detailed connection records are kept. Domain and IP statistics are always preserved. Longer storage uses more disk space but allows troubleshooting older issues.",
+    "retentionPresetMinimal": "Minimal",
+    "retentionPresetMinimalDesc": "Save disk space, keep 3 days of details",
+    "retentionPresetStandard": "Standard",
+    "retentionPresetStandardDesc": "Balanced, keep 7 days of details",
+    "retentionPresetExtended": "Extended",
+    "retentionPresetExtendedDesc": "Full history, keep 30 days of details",
+    "retentionPresetMaximum": "Maximum",
+    "retentionPresetMaximumDesc": "Maximum retention, keep 90 days of details",
+    "retentionCustom": "Custom",
+    "retentionCustomDesc": "Set your own storage period (max 90 days)",
+    "retentionDays": "{days} days",
+    "retentionUpdated": "Storage settings saved",
+    "retentionUpdateFailed": "Failed to save settings"
   }
 }

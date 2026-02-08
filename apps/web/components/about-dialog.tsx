@@ -1,14 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { ExternalLink, ArrowUpCircle, RefreshCw } from "lucide-react";
+import { ExternalLink, ArrowUpCircle, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
 import { useVersionCheck } from "@/hooks/use-version-check";
 
@@ -25,15 +20,31 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
   const { latestVersion, hasUpdate, isChecking, stars, checkNow } =
     useVersionCheck(APP_VERSION);
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            About
-          </DialogTitle>
-        </DialogHeader>
-        <div className="py-4">
+    <div
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onOpenChange(false);
+      }}>
+      <Card className="w-full max-w-[420px] relative">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              About
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => onOpenChange(false)}>
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
           {/* App Info */}
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
@@ -162,8 +173,8 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
               </div>
             </a>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

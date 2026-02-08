@@ -18,12 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatBytes, formatNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api";
+import { api, type ClashRulesResponse } from "@/lib/api";
 import { Favicon } from "@/components/favicon";
-import type { ProxyStats, DomainStats, IPStats } from "@clashmaster/shared";
+import { UnifiedRuleChainFlow } from "@/components/rule-chain-flow";
+import type { RuleStats, DomainStats, IPStats } from "@clashmaster/shared";
 
-interface InteractiveProxyStatsProps {
-  data: ProxyStats[];
+interface InteractiveRuleStatsProps {
+  data: RuleStats[];
   activeBackendId?: number;
 }
 
@@ -55,25 +56,6 @@ const getIPGradient = (ip: string) => {
   }
   return colors[Math.abs(hash) % colors.length];
 };
-
-// Keep original proxy name - preserve emojis and special characters
-function simplifyProxyName(name: string): string {
-  if (!name) return "DIRECT";
-  // Keep original name with emojis, just trim whitespace
-  return name.trim();
-}
-
-// Get emoji for proxy
-function getProxyEmoji(name: string): string {
-  if (name.includes("🇺🇸")) return "🇺🇸";
-  if (name.includes("🇯🇵")) return "🇯🇵";
-  if (name.includes("🇸🇬")) return "🇸🇬";
-  if (name.includes("🇭🇰")) return "🇭🇰";
-  if (name.includes("🇹🇼")) return "🇹🇼";
-  if (name.includes("🇰🇷")) return "🇰🇷";
-  if (name === "DIRECT" || name === "Direct") return "🏠";
-  return "🌐";
-}
 
 // Domain sort keys
 type DomainSortKey = "domain" | "totalDownload" | "totalUpload" | "totalConnections";
@@ -110,17 +92,20 @@ const getIPColor = (ip: string) => {
   return ICON_COLORS[Math.abs(hash) % ICON_COLORS.length];
 };
 
-// Country flag emoji mapping
-const COUNTRY_FLAGS: Record<string, string> = {
-  US: "🇺🇸", CN: "🇨🇳", JP: "🇯🇵", SG: "🇸🇬", HK: "🇭🇰",
-  TW: "🇹🇼", KR: "🇰🇷", GB: "🇬🇧", DE: "🇩🇪", FR: "🇫🇷",
-  NL: "🇳🇱", CA: "🇨🇦", AU: "🇦🇺", IN: "🇮🇳", BR: "🇧🇷",
-  RU: "🇷🇺", SE: "🇸🇪", CH: "🇨🇭", IL: "🇮🇱", ID: "🇮🇩",
-  LOCAL: "🏠",
-};
-
-function getCountryFlag(country: string): string {
-  return COUNTRY_FLAGS[country] || COUNTRY_FLAGS[country.toUpperCase()] || "🌐";
+// Get country flag emoji from country code
+function getCountryFlag(countryCode: string): string {
+  if (!countryCode || countryCode === 'unknown') return '🌐';
+  const code = countryCode.toUpperCase();
+  if (code === 'ZZ') return '🌐';
+  // Convert country code to regional indicator symbols
+  const base = 127397;
+  try {
+    return String.fromCodePoint(
+      ...code.split('').map(char => base + char.charCodeAt(0))
+    );
+  } catch {
+    return '🌐';
+  }
 }
 
 // Custom label renderer for bar chart
@@ -141,14 +126,14 @@ function renderCustomBarLabel(props: any) {
   );
 }
 
-export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProxyStatsProps) {
-  const t = useTranslations("proxies");
+export function InteractiveRuleStats({ data, activeBackendId }: InteractiveRuleStatsProps) {
+  const t = useTranslations("rules");
   const domainsT = useTranslations("domains");
   const ipsT = useTranslations("ips");
   
-  const [selectedProxy, setSelectedProxy] = useState<string | null>(null);
-  const [proxyDomains, setProxyDomains] = useState<DomainStats[]>([]);
-  const [proxyIPs, setProxyIPs] = useState<IPStats[]>([]);
+  const [selectedRule, setSelectedRule] = useState<string | null>(null);
+  const [ruleDomains, setRuleDomains] = useState<DomainStats[]>([]);
+  const [ruleIPs, setRuleIPs] = useState<IPStats[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("domains");
   
@@ -160,6 +145,7 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
   const [ipPageSize, setIpPageSize] = useState<PageSize>(10);
   const [ipSearch, setIpSearch] = useState("");
   const [showDomainBarLabels, setShowDomainBarLabels] = useState(true);
+  const [clashRules, setClashRules] = useState<ClashRulesResponse | null>(null);
 
   // Sort states
   const [domainSortKey, setDomainSortKey] = useState<DomainSortKey>("totalDownload");
@@ -179,33 +165,79 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
     return () => media.removeEventListener("change", update);
   }, []);
 
+  // Fetch Clash rules to find zero-traffic rules
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchClashRules() {
+      try {
+        const result = await api.getClashRules(activeBackendId);
+        if (!cancelled) setClashRules(result);
+      } catch {
+        // Silent - Clash API may not be available
+      }
+    }
+    fetchClashRules();
+    const interval = setInterval(fetchClashRules, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [activeBackendId]);
+
   const chartData = useMemo(() => {
     if (!data) return [];
-    return data.map((proxy, index) => ({
-      name: simplifyProxyName(proxy.chain),
-      rawName: proxy.chain,
-      value: proxy.totalDownload + proxy.totalUpload,
-      download: proxy.totalDownload,
-      upload: proxy.totalUpload,
-      connections: proxy.totalConnections,
+    const existingRuleNames = new Set(data.map(r => r.rule));
+    const trafficItems = data.map((rule, index) => ({
+      name: rule.rule,
+      rawName: rule.rule,
+      value: rule.totalDownload + rule.totalUpload,
+      download: rule.totalDownload,
+      upload: rule.totalUpload,
+      connections: rule.totalConnections,
+      finalProxy: rule.finalProxy,
       color: COLORS[index % COLORS.length],
-      emoji: getProxyEmoji(proxy.chain),
       rank: index,
+      hasTraffic: true,
     }));
-  }, [data]);
+
+    // Append zero-traffic rules from Clash API, using the target proxy group name
+    // (rule.proxy) which matches how traffic data stores rule names.
+    // Multiple low-level rules (RuleSet, ProcessName, etc.) can target the same
+    // proxy group, so we deduplicate by proxy group name.
+    if (clashRules?.rules) {
+      const zeroTrafficItems: typeof trafficItems = [];
+      for (const rule of clashRules.rules) {
+        const proxyGroup = rule.proxy;
+        if (existingRuleNames.has(proxyGroup)) continue;
+        existingRuleNames.add(proxyGroup);
+        zeroTrafficItems.push({
+          name: proxyGroup,
+          rawName: proxyGroup,
+          value: 0,
+          download: 0,
+          upload: 0,
+          connections: 0,
+          finalProxy: proxyGroup,
+          color: "#9CA3AF",
+          rank: trafficItems.length + zeroTrafficItems.length,
+          hasTraffic: false,
+        });
+      }
+      return [...trafficItems, ...zeroTrafficItems];
+    }
+
+    return trafficItems;
+  }, [data, clashRules]);
 
   const totalTraffic = useMemo(() => {
     return chartData.reduce((sum, item) => sum + item.value, 0);
   }, [chartData]);
 
-  const topProxies = useMemo(
+  const topRules = useMemo(
     () => [...chartData].sort((a, b) => b.value - a.value).slice(0, 4),
     [chartData]
   );
 
   const maxTotal = useMemo(() => {
     if (!chartData.length) return 1;
-    return Math.max(...chartData.map(p => p.value));
+    return Math.max(...chartData.map(r => r.value));
   }, [chartData]);
 
   // Domain sort handler
@@ -258,55 +290,55 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
     );
   };
 
-  // Load proxy details
-  const loadProxyDetails = useCallback(async (chain: string) => {
+  // Load rule details
+  const loadRuleDetails = useCallback(async (rule: string) => {
     setLoading(true);
     try {
       const [domains, ips] = await Promise.all([
-        api.getProxyDomains(chain, activeBackendId),
-        api.getProxyIPs(chain, activeBackendId),
+        api.getRuleDomains(rule, activeBackendId),
+        api.getRuleIPs(rule, activeBackendId),
       ]);
-      setProxyDomains(domains);
-      setProxyIPs(ips);
+      setRuleDomains(domains);
+      setRuleIPs(ips);
       // Reset pagination
       setDomainPage(1);
       setIpPage(1);
       setDomainSearch("");
       setIpSearch("");
     } catch (err) {
-      console.error(`Failed to load details for ${chain}:`, err);
-      setProxyDomains([]);
-      setProxyIPs([]);
+      console.error(`Failed to load details for ${rule}:`, err);
+      setRuleDomains([]);
+      setRuleIPs([]);
     } finally {
       setLoading(false);
     }
   }, [activeBackendId]);
 
-  // Default select first proxy when data loads
+  // Default select first rule when data loads
   useEffect(() => {
-    if (chartData.length > 0 && !selectedProxy) {
-      const firstProxy = chartData[0].rawName;
-      setSelectedProxy(firstProxy);
-      loadProxyDetails(firstProxy);
+    if (chartData.length > 0 && !selectedRule) {
+      const firstRule = chartData[0].rawName;
+      setSelectedRule(firstRule);
+      loadRuleDetails(firstRule);
     }
-  }, [chartData, selectedProxy, loadProxyDetails]);
+  }, [chartData, selectedRule, loadRuleDetails]);
 
-  const handleProxyClick = useCallback((chain: string) => {
-    if (selectedProxy !== chain) {
-      setSelectedProxy(chain);
-      loadProxyDetails(chain);
+  const handleRuleClick = useCallback((rule: string) => {
+    if (selectedRule !== rule) {
+      setSelectedRule(rule);
+      loadRuleDetails(rule);
     }
-  }, [selectedProxy, loadProxyDetails]);
+  }, [selectedRule, loadRuleDetails]);
 
-  const selectedProxyData = useMemo(() => {
-    return chartData.find(p => p.rawName === selectedProxy);
-  }, [chartData, selectedProxy]);
+  const selectedRuleData = useMemo(() => {
+    return chartData.find(r => r.rawName === selectedRule);
+  }, [chartData, selectedRule]);
 
   // Filter, sort and paginate domains
   const filteredDomains = useMemo(() => {
-    let result = proxyDomains;
+    let result = ruleDomains;
     if (domainSearch) {
-      result = proxyDomains.filter(d => 
+      result = ruleDomains.filter(d => 
         d.domain.toLowerCase().includes(domainSearch.toLowerCase())
       );
     }
@@ -320,7 +352,7 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
       }
       return ((aValue as number) - (bValue as number)) * modifier;
     });
-  }, [proxyDomains, domainSearch, domainSortKey, domainSortOrder]);
+  }, [ruleDomains, domainSearch, domainSortKey, domainSortOrder]);
 
   const paginatedDomains = useMemo(() => {
     const start = (domainPage - 1) * domainPageSize;
@@ -331,9 +363,9 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
 
   // Filter, sort and paginate IPs
   const filteredIPs = useMemo(() => {
-    let result = proxyIPs;
+    let result = ruleIPs;
     if (ipSearch) {
-      result = proxyIPs.filter(ip => 
+      result = ruleIPs.filter(ip => 
         ip.ip.toLowerCase().includes(ipSearch.toLowerCase()) ||
         ip.domains.some(d => d.toLowerCase().includes(ipSearch.toLowerCase()))
       );
@@ -348,7 +380,7 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
       }
       return ((aValue as number) - (bValue as number)) * modifier;
     });
-  }, [proxyIPs, ipSearch, ipSortKey, ipSortOrder]);
+  }, [ruleIPs, ipSearch, ipSortKey, ipSortOrder]);
 
   const paginatedIPs = useMemo(() => {
     const start = (ipPage - 1) * ipPageSize;
@@ -359,8 +391,8 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
 
   // Chart data
   const domainChartData = useMemo(() => {
-    if (!proxyDomains?.length) return [];
-    return proxyDomains
+    if (!ruleDomains?.length) return [];
+    return ruleDomains
       .slice(0, 10)
       .map((domain, index) => ({
         name: domain.domain.length > 15 ? domain.domain.slice(0, 15) + "..." : domain.domain,
@@ -371,7 +403,7 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
         connections: domain.totalConnections,
         color: CHART_COLORS[index % CHART_COLORS.length],
       }));
-  }, [proxyDomains]);
+  }, [ruleDomains]);
 
   const getPageNumbers = (currentPage: number, totalPages: number) => {
     const pages: (number | string)[] = [];
@@ -453,13 +485,13 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            {topProxies.length > 0 && (
+            {topRules.length > 0 && (
               <div className="mt-2">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center">
                   Top 4
                 </p>
                 <div className="mt-1 space-y-1.5">
-                  {topProxies.map((item, idx) => {
+                  {topRules.map((item, idx) => {
                     const rankBadgeClass = idx === 0
                       ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
                       : idx === 1
@@ -497,11 +529,11 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
           </CardContent>
         </Card>
 
-        {/* Middle: Proxy List (4 columns) - Style like TopProxiesSimple */}
+        {/* Middle: Rule List (4 columns) */}
         <Card className="lg:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              {t("proxyNodes")}
+              {t("ruleList")}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3">
@@ -509,11 +541,14 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
               <div className="space-y-2">
                 {chartData.map((item) => {
                 const percentage = totalTraffic > 0 ? (item.value / totalTraffic) * 100 : 0;
-                const barPercent = (item.value / maxTotal) * 100;
-                const isSelected = selectedProxy === item.rawName;
-                
-                // Badge color based on rank like TopProxiesSimple
-                const badgeColor = item.rank === 0
+                const barPercent = maxTotal > 0 ? (item.value / maxTotal) * 100 : 0;
+                const isSelected = selectedRule === item.rawName;
+                const noTraffic = !item.hasTraffic;
+
+                // Badge color based on rank
+                const badgeColor = noTraffic
+                  ? "bg-muted text-muted-foreground"
+                  : item.rank === 0
                   ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                   : item.rank === 1
                   ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
@@ -524,10 +559,12 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
                 return (
                   <button
                     key={item.rawName}
-                    onClick={() => handleProxyClick(item.rawName)}
+                    onClick={() => !noTraffic && handleRuleClick(item.rawName)}
                     className={cn(
                       "w-full p-2.5 rounded-xl border text-left transition-all duration-200",
-                      isSelected
+                      noTraffic
+                        ? "border-border/30 bg-card/30 opacity-50 cursor-default"
+                        : isSelected
                         ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                         : "border-border/50 bg-card/50 hover:bg-card hover:border-primary/30"
                     )}>
@@ -537,29 +574,32 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
                         "w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center shrink-0",
                         badgeColor
                       )}>
-                        {item.rank + 1}
+                        {noTraffic ? "–" : item.rank + 1}
                       </span>
-                      
+
                       <span className="flex-1 text-sm font-medium truncate" title={item.name}>
                         {item.name}
                       </span>
-                      
+
                       <span className="text-sm font-bold tabular-nums shrink-0">
-                        {formatBytes(item.value)}
+                        {noTraffic ? (
+                          <span className="text-xs font-normal text-muted-foreground">{t("noTrafficRecord")}</span>
+                        ) : formatBytes(item.value)}
                       </span>
                     </div>
 
-                    {/* Row 2: Progress bar + Stats */}
+                    {/* Row 2: Progress bar + Stats (hidden for zero-traffic) */}
+                    {!noTraffic && (
                     <div className="pl-7 space-y-1">
-                      {/* Progress bar - dual color like TopProxiesSimple */}
+                      {/* Progress bar - dual color */}
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden flex">
-                        <div 
-                          className="h-full bg-blue-500 dark:bg-blue-400" 
-                          style={{ width: `${(item.download / item.value) * barPercent}%` }}
+                        <div
+                          className="h-full bg-blue-500 dark:bg-blue-400"
+                          style={{ width: `${item.value > 0 ? (item.download / item.value) * barPercent : 0}%` }}
                         />
-                        <div 
-                          className="h-full bg-purple-500 dark:bg-purple-400" 
-                          style={{ width: `${(item.upload / item.value) * barPercent}%` }}
+                        <div
+                          className="h-full bg-purple-500 dark:bg-purple-400"
+                          style={{ width: `${item.value > 0 ? (item.upload / item.value) * barPercent : 0}%` }}
                         />
                       </div>
                       {/* Stats */}
@@ -575,6 +615,7 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
                         <span className="tabular-nums">{percentage.toFixed(1)}%</span>
                       </div>
                     </div>
+                    )}
                   </button>
                 );
               })}
@@ -591,9 +632,9 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
                 <BarChart3 className="h-4 w-4" />
                 {t("topDomains")}
               </CardTitle>
-              {selectedProxyData && (
+              {selectedRuleData && (
                 <span className="text-xs text-muted-foreground">
-                  {selectedProxyData.name}
+                  {selectedRuleData.name}
                 </span>
               )}
             </div>
@@ -697,8 +738,14 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
         </Card>
       </div>
 
+      {/* Unified Chain Flow Visualization - shows all rules, highlights selected */}
+      <UnifiedRuleChainFlow
+        selectedRule={selectedRule}
+        activeBackendId={activeBackendId}
+      />
+
       {/* Bottom Section: Domain List & IP Addresses with pagination */}
-      {selectedProxy && (
+      {selectedRule && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Simplified Tabs - no icons, no counts, like Domains page */}
           <TabsList className="glass">
@@ -1097,7 +1144,7 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
                         <IPSortIcon column="totalDownload" />
                       </div>
                       <div 
-                        className="col-span-1 flex items-center justify-end cursor-pointer hover:text-foreground transition-colors"
+                        className="col-span-2 flex items-center justify-end cursor-pointer hover:text-foreground transition-colors"
                         onClick={() => handleIPSort("totalUpload")}
                       >
                         {ipsT("upload")}
@@ -1192,7 +1239,7 @@ export function InteractiveProxyStats({ data, activeBackendId }: InteractiveProx
                                 </div>
 
                                 {/* Upload */}
-                                <div className="col-span-1 text-right tabular-nums text-sm">
+                                <div className="col-span-2 text-right tabular-nums text-sm">
                                   <span className="text-purple-500">{formatBytes(ip.totalUpload)}</span>
                                 </div>
 

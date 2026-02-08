@@ -16,14 +16,16 @@ services:
       - WEB_PORT=3000
       - API_PORT=3001
       - COLLECTOR_WS_PORT=3002
-      # 告诉前端浏览器应该连接哪个 WebSocket 端口
-      - NEXT_PUBLIC_WS_PORT=${WS_EXTERNAL_PORT:-3002}
+      # 将外部端口传入容器，用于运行时前端配置
+      - WEB_EXTERNAL_PORT=${WEB_EXTERNAL_PORT:-3000}
+      - API_EXTERNAL_PORT=${API_EXTERNAL_PORT:-3001}
+      - WS_EXTERNAL_PORT=${WS_EXTERNAL_PORT:-3002}
       - DB_PATH=/app/data/stats.db
-    networks:Open Source Project
+    networks:
       - clash-master-network
     # 健康检查
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001/health"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:${API_PORT:-3001}/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

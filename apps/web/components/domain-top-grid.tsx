@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatBytes, formatNumber } from "@/lib/utils";
+import { useSettings, getFaviconUrl } from "@/lib/settings";
 import type { DomainStats } from "@clashmaster/shared";
 
 interface DomainTopGridProps {
@@ -16,10 +17,6 @@ interface DomainTopGridProps {
 
 type SortBy = "traffic" | "connections";
 
-function getFaviconUrl(domain: string): string {
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-}
-
 function getInitials(domain: string): string {
   return domain.slice(0, 2).toUpperCase();
 }
@@ -28,6 +25,8 @@ export function DomainTopGrid({ data, limit = 5, onViewAll }: DomainTopGridProps
   const [sortBy, setSortBy] = useState<SortBy>("traffic");
   const t = useTranslations("topDomains");
   const proxiesT = useTranslations("proxies");
+  const { settings } = useSettings();
+  const faviconDisabled = settings.faviconProvider === "off";
 
   const domains = useMemo(() => {
     if (!data) return [];
@@ -45,6 +44,11 @@ export function DomainTopGrid({ data, limit = 5, onViewAll }: DomainTopGridProps
   }, [data, limit, sortBy]);
 
   const toggleSort = () => setSortBy(prev => prev === "traffic" ? "connections" : "traffic");
+
+  // Get favicon URL using current provider
+  const getFaviconForDomain = (domain: string) => {
+    return getFaviconUrl(domain, settings.faviconProvider);
+  };
 
   return (
     <Card className="h-full flex flex-col">
@@ -79,19 +83,25 @@ export function DomainTopGrid({ data, limit = 5, onViewAll }: DomainTopGridProps
                   {index + 1}
                 </span>
                 
-                <img
-                  src={getFaviconUrl(domain.domain)}
-                  alt=""
-                  className="w-5 h-5 rounded"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                    const parent = target.parentElement;
-                    if (parent) {
-                      parent.innerHTML = `<span class="w-5 h-5 rounded bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground">${getInitials(domain.domain)}</span>`;
-                    }
-                  }}
-                />
+                {faviconDisabled ? (
+                  <span className="w-5 h-5 rounded bg-muted flex items-center justify-center">
+                    <Globe className="w-3 h-3 text-muted-foreground" />
+                  </span>
+                ) : (
+                  <img
+                    src={getFaviconForDomain(domain.domain)}
+                    alt=""
+                    className="w-5 h-5 rounded"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `<span class="w-5 h-5 rounded bg-muted flex items-center justify-center text-[9px] font-bold text-muted-foreground">${getInitials(domain.domain)}</span>`;
+                      }
+                    }}
+                  />
+                )}
                 
                 <span className="flex-1 text-sm font-medium truncate" title={domain.domain}>
                   {domain.domain}

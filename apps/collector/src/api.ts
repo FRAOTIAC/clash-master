@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import type { StatsDatabase } from './db.js';
+import { realtimeStore } from './realtime.js';
 
 export class APIServer {
   private app: ReturnType<typeof Fastify> | null = null;
@@ -50,12 +51,25 @@ export class APIServer {
       }
 
       const summary = this.db.getSummary(backendId);
-      const topDomains = this.db.getTopDomains(backendId, 1000);
-      const topIPs = this.db.getTopIPs(backendId, 1000);
-      const proxyStats = this.db.getProxyStats(backendId);
+      const summaryWithRealtime = realtimeStore.applySummaryDelta(backendId, summary);
+      const topDomains = realtimeStore.mergeTopDomains(
+        backendId,
+        this.db.getTopDomains(backendId, 10),
+        10
+      );
+      const topIPs = realtimeStore.mergeTopIPs(
+        backendId,
+        this.db.getTopIPs(backendId, 10),
+        10
+      );
+      const proxyStats = realtimeStore.mergeProxyStats(
+        backendId,
+        this.db.getProxyStats(backendId)
+      );
       const ruleStats = this.db.getRuleStats(backendId);
       const hourlyStats = this.db.getHourlyStats(backendId, 24);
       const todayTraffic = this.db.getTodayTraffic(backendId);
+      const todayDelta = realtimeStore.getTodayDelta(backendId);
 
       return {
         backend: {
@@ -64,15 +78,15 @@ export class APIServer {
           isActive: backend.is_active,
           listening: backend.listening,
         },
-        totalConnections: summary.totalConnections,
-        totalUpload: summary.totalUpload,
-        totalDownload: summary.totalDownload,
+        totalConnections: summaryWithRealtime.totalConnections,
+        totalUpload: summaryWithRealtime.totalUpload,
+        totalDownload: summaryWithRealtime.totalDownload,
         totalDomains: summary.uniqueDomains,
         totalIPs: summary.uniqueIPs,
         totalRules: ruleStats.length,
         totalProxies: proxyStats.length,
-        todayUpload: todayTraffic.upload,
-        todayDownload: todayTraffic.download,
+        todayUpload: todayTraffic.upload + todayDelta.upload,
+        todayDownload: todayTraffic.download + todayDelta.download,
         topDomains,
         topIPs,
         proxyStats,
@@ -86,28 +100,52 @@ export class APIServer {
       return this.db.getGlobalSummary();
     });
 
-    // Get domain statistics for a specific backend
+    // Get domain statistics for a specific backend (paginated)
     app.get('/api/stats/domains', async (request, reply) => {
       const backendId = getBackendId(request);
-      
+
       if (backendId === null) {
         return reply.status(404).send({ error: 'No backend specified or active' });
       }
 
-      const { limit = 50 } = request.query as { limit?: string };
-      return this.db.getDomainStats(backendId, parseInt(limit as string) || 50);
+      const { offset, limit, sortBy, sortOrder, search } = request.query as {
+        offset?: string;
+        limit?: string;
+        sortBy?: string;
+        sortOrder?: string;
+        search?: string;
+      };
+      return this.db.getDomainStatsPaginated(backendId, {
+        offset: offset ? parseInt(offset) || 0 : 0,
+        limit: limit ? parseInt(limit) || 50 : 50,
+        sortBy,
+        sortOrder,
+        search,
+      });
     });
 
-    // Get IP statistics for a specific backend
+    // Get IP statistics for a specific backend (paginated)
     app.get('/api/stats/ips', async (request, reply) => {
       const backendId = getBackendId(request);
-      
+
       if (backendId === null) {
         return reply.status(404).send({ error: 'No backend specified or active' });
       }
 
-      const { limit = 50 } = request.query as { limit?: string };
-      return this.db.getIPStats(backendId, parseInt(limit as string) || 50);
+      const { offset, limit, sortBy, sortOrder, search } = request.query as {
+        offset?: string;
+        limit?: string;
+        sortBy?: string;
+        sortOrder?: string;
+        search?: string;
+      };
+      return this.db.getIPStatsPaginated(backendId, {
+        offset: offset ? parseInt(offset) || 0 : 0,
+        limit: limit ? parseInt(limit) || 50 : 50,
+        sortBy,
+        sortOrder,
+        search,
+      });
     });
 
     // Get per-proxy traffic breakdown for a specific domain
@@ -205,7 +243,10 @@ export class APIServer {
         return reply.status(404).send({ error: 'No backend specified or active' });
       }
 
-      return this.db.getProxyStats(backendId);
+      return realtimeStore.mergeProxyStats(
+        backendId,
+        this.db.getProxyStats(backendId)
+      );
     });
 
     // Get rule statistics for a specific backend
@@ -217,6 +258,65 @@ export class APIServer {
       }
 
       return this.db.getRuleStats(backendId);
+    });
+
+    // Get domains for a specific rule
+    app.get('/api/stats/rules/domains', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { rule } = request.query as { rule?: string };
+      if (!rule) {
+        return reply.status(400).send({ error: 'Rule parameter is required' });
+      }
+
+      return this.db.getRuleDomains(backendId, rule);
+    });
+
+    // Get IPs for a specific rule
+    app.get('/api/stats/rules/ips', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { rule } = request.query as { rule?: string };
+      if (!rule) {
+        return reply.status(400).send({ error: 'Rule parameter is required' });
+      }
+
+      return this.db.getRuleIPs(backendId, rule);
+    });
+
+    // Get rule chain flow for a specific rule
+    app.get('/api/stats/rules/chain-flow', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { rule } = request.query as { rule?: string };
+      if (!rule) {
+        return reply.status(400).send({ error: 'Rule parameter is required' });
+      }
+
+      return this.db.getRuleChainFlow(backendId, rule);
+    });
+
+    // Get all rule chain flows merged into unified DAG
+    app.get('/api/stats/rules/chain-flow-all', async (request, reply) => {
+      const backendId = getBackendId(request);
+
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      return this.db.getAllRuleChainFlows(backendId);
     });
 
     // Get rule to proxy mapping for a specific backend
@@ -238,7 +338,10 @@ export class APIServer {
         return reply.status(404).send({ error: 'No backend specified or active' });
       }
 
-      return this.db.getCountryStats(backendId);
+      return realtimeStore.mergeCountryStats(
+        backendId,
+        this.db.getCountryStats(backendId)
+      );
     });
 
     // Get hourly statistics for a specific backend
@@ -262,7 +365,9 @@ export class APIServer {
       }
 
       const { minutes = 30 } = request.query as { minutes?: string };
-      return this.db.getTrafficTrend(backendId, parseInt(minutes as string) || 30);
+      const windowMinutes = parseInt(minutes as string) || 30;
+      const base = this.db.getTrafficTrend(backendId, windowMinutes);
+      return realtimeStore.mergeTrend(backendId, base, windowMinutes, 1);
     });
 
     // Get traffic trend aggregated by time buckets for chart display
@@ -274,11 +379,10 @@ export class APIServer {
       }
 
       const { minutes = 30, bucketMinutes = 1 } = request.query as { minutes?: string; bucketMinutes?: string };
-      return this.db.getTrafficTrendAggregated(
-        backendId,
-        parseInt(minutes as string) || 30,
-        parseInt(bucketMinutes as string) || 1
-      );
+      const windowMinutes = parseInt(minutes as string) || 30;
+      const bucket = parseInt(bucketMinutes as string) || 1;
+      const base = this.db.getTrafficTrendAggregated(backendId, windowMinutes, bucket);
+      return realtimeStore.mergeTrend(backendId, base, windowMinutes, bucket);
     });
 
     // Get recent connections for a specific backend
@@ -414,6 +518,53 @@ export class APIServer {
       return { message: `Backend ${listening ? 'started' : 'stopped'} listening` };
     });
 
+    // Test existing backend connection (uses stored token)
+    app.post('/api/backends/:id/test', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const backend = this.db.getBackend(parseInt(id));
+      if (!backend) {
+        return reply.status(404).send({ error: 'Backend not found' });
+      }
+
+      try {
+        const wsUrl = backend.url.replace('http://', 'ws://').replace('https://', 'wss://');
+        const fullUrl = wsUrl.includes('/connections') ? wsUrl : `${wsUrl}/connections`;
+
+        const headers: Record<string, string> = {};
+        if (backend.token) {
+          headers['Authorization'] = `Bearer ${backend.token}`;
+        }
+
+        const WebSocket = (await import('ws')).default;
+
+        return new Promise((resolve) => {
+          const ws = new WebSocket(fullUrl, { headers, timeout: 5000 });
+
+          ws.on('open', () => {
+            ws.close();
+            resolve({ success: true, message: 'Connection successful' });
+          });
+
+          ws.on('error', (error: any) => {
+            resolve({ success: false, message: error.message || 'Connection failed' });
+          });
+
+          ws.on('close', (code: number) => {
+            if (code !== 1000 && code !== 1005) {
+              resolve({ success: false, message: `Connection closed with code ${code}` });
+            }
+          });
+
+          setTimeout(() => {
+            ws.terminate();
+            resolve({ success: false, message: 'Connection timeout' });
+          }, 5000);
+        });
+      } catch (error: any) {
+        return { success: false, message: error.message || 'Connection failed' };
+      }
+    });
+
     // Test backend connection
     app.post('/api/backends/test', async (request) => {
       const { url, token } = request.body as { url: string; token?: string };
@@ -473,6 +624,70 @@ export class APIServer {
       return { message: 'Backend data cleared successfully' };
     });
 
+    // Clash API proxy endpoints
+    // Get providers/proxies from Clash backend
+    app.get('/api/clash/providers/proxies', async (request, reply) => {
+      const backendId = getBackendId(request);
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+      const backend = this.db.getBackend(backendId);
+      if (!backend) {
+        return reply.status(404).send({ error: 'Backend not found' });
+      }
+
+      // Derive Clash REST base URL from the stored WebSocket URL
+      const clashBaseUrl = backend.url
+        .replace('ws://', 'http://').replace('wss://', 'https://')
+        .replace(/\/connections\/?$/, '');
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (backend.token) {
+        headers['Authorization'] = `Bearer ${backend.token}`;
+      }
+
+      try {
+        const res = await fetch(`${clashBaseUrl}/providers/proxies`, { headers });
+        if (!res.ok) {
+          return reply.status(res.status).send({ error: `Clash API error: ${res.status}` });
+        }
+        return res.json();
+      } catch (err: any) {
+        return reply.status(502).send({ error: err.message || 'Failed to reach Clash API' });
+      }
+    });
+
+    // Get rules from Clash backend
+    app.get('/api/clash/rules', async (request, reply) => {
+      const backendId = getBackendId(request);
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+      const backend = this.db.getBackend(backendId);
+      if (!backend) {
+        return reply.status(404).send({ error: 'Backend not found' });
+      }
+
+      const clashBaseUrl = backend.url
+        .replace('ws://', 'http://').replace('wss://', 'https://')
+        .replace(/\/connections\/?$/, '');
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (backend.token) {
+        headers['Authorization'] = `Bearer ${backend.token}`;
+      }
+
+      try {
+        const res = await fetch(`${clashBaseUrl}/rules`, { headers });
+        if (!res.ok) {
+          return reply.status(res.status).send({ error: `Clash API error: ${res.status}` });
+        }
+        return res.json();
+      } catch (err: any) {
+        return reply.status(502).send({ error: err.message || 'Failed to reach Clash API' });
+      }
+    });
+
     // Database management APIs
     // Get database stats
     app.get('/api/db/stats', async () => {
@@ -493,7 +708,19 @@ export class APIServer {
 
       const result = this.db.cleanupOldData(backendId || null, days);
       
+      // Also clear realtime cache when clearing all data
       if (days === 0) {
+        if (backendId) {
+          // Clear specific backend's cache
+          realtimeStore.clearBackend(backendId);
+        } else {
+          // Clear all backends' cache
+          const backends = this.db.getAllBackends();
+          for (const backend of backends) {
+            realtimeStore.clearBackend(backend.id);
+          }
+        }
+        
         return { 
           message: `Cleaned all data: ${result.deletedConnections} connections, ${result.deletedDomains} domains, ${result.deletedProxies} proxies`,
           deleted: result.deletedConnections,
@@ -514,6 +741,36 @@ export class APIServer {
     app.post('/api/db/vacuum', async () => {
       this.db.vacuum();
       return { message: 'Database vacuumed successfully' };
+    });
+
+    // Get retention configuration
+    app.get('/api/db/retention', async () => {
+      return this.db.getRetentionConfig();
+    });
+
+    // Update retention configuration
+    app.put('/api/db/retention', async (request, reply) => {
+      const { connectionLogsDays, hourlyStatsDays, autoCleanup } = request.body as {
+        connectionLogsDays?: number;
+        hourlyStatsDays?: number;
+        autoCleanup?: boolean;
+      };
+
+      // Validate input
+      if (connectionLogsDays !== undefined && (connectionLogsDays < 1 || connectionLogsDays > 90)) {
+        return reply.status(400).send({ error: 'connectionLogsDays must be between 1 and 90' });
+      }
+      if (hourlyStatsDays !== undefined && (hourlyStatsDays < 7 || hourlyStatsDays > 365)) {
+        return reply.status(400).send({ error: 'hourlyStatsDays must be between 7 and 365' });
+      }
+
+      const newConfig = this.db.updateRetentionConfig({
+        connectionLogsDays,
+        hourlyStatsDays,
+        autoCleanup,
+      });
+
+      return { message: 'Retention configuration updated', config: newConfig };
     });
 
     await app.listen({ port: this.port, host: '0.0.0.0' });

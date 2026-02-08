@@ -23,6 +23,8 @@
 </p>
 
 ![Clash Master Overview](./assets/clash-master-overview.png)
+![Clash Master Rules](./assets/clash-master-rules.png)
+![Clash Master Regions](./assets/clash-master-regions.png)
 
 ## 📋 目录
 
@@ -37,25 +39,7 @@
 
 ## 🚀 快速开始
 
-### 方式一：一键脚本（推荐）
-
-最简单的方式，自动检测端口冲突并配置：
-
-```bash
-# 下载脚本
-curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh | bash
-
-# 或使用 wget
-wget -qO- https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh | bash
-```
-
-脚本会自动：
-- ✅ 检测默认端口（3000/3001/3002）是否被占用
-- ✅ 提供可用的替代端口
-- ✅ 创建配置文件
-- ✅ 启动服务
-
-### 方式二：Docker Compose（手动）
+### 方式一：Docker Compose（推荐）
 
 创建 `docker-compose.yml`：
 
@@ -66,15 +50,17 @@ services:
     container_name: clash-master
     restart: unless-stopped
     ports:
-      - "3000:3000"   # Web UI
-      - "3001:3001"   # API
-      - "3002:3002"   # WebSocket
+      - "3000:3000" # Web UI
+      - "3001:3001" # API
+      - "3002:3002" # WebSocket
     volumes:
       - ./data:/app/data
     environment:
       - NODE_ENV=production
-      - API_PORT=3001
-      - COLLECTOR_WS_PORT=3002
+      # 外部端口（可选，默认即为 3000/3001/3002）
+      - WEB_EXTERNAL_PORT=3000
+      - API_EXTERNAL_PORT=3001
+      - WS_EXTERNAL_PORT=3002
       - DB_PATH=/app/data/stats.db
 ```
 
@@ -84,26 +70,23 @@ services:
 docker compose up -d
 ```
 
-访问 http://localhost:3000
+访问 <http://localhost:3000>
 
-### 方式三：使用 .env 配置文件
-
-适合需要自定义端口的场景：
+### 方式二：Docker 直接运行
 
 ```bash
-# 1. 下载配置文件
-curl -O https://raw.githubusercontent.com/foru17/clash-master/main/.env.example
-curl -O https://raw.githubusercontent.com/foru17/clash-master/main/docker-compose.yml
+**最简（推荐，仅 Web 反代）：**
 
-# 2. 重命名为 .env 并编辑
-mv .env.example .env
-# 修改 .env 中的端口
-
-# 3. 启动
-docker compose up -d
+```bash
+docker run -d \
+  --name clash-master \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  --restart unless-stopped \
+  foru17/clash-master:latest
 ```
 
-### 方式四：Docker 直接运行
+**可选（直连 API / WebSocket 时才需要）：**
 
 ```bash
 docker run -d \
@@ -116,11 +99,55 @@ docker run -d \
   foru17/clash-master:latest
 ```
 
+> 默认前端走同域 `/api`，所以只需要暴露 3000。  
+> 只有当你需要直连 API / WS 或未配置 Nginx `/api` / `/ws` 反代时，才需要暴露 3001/3002。
+```
+
+访问 <http://localhost:3000>
+
+> 如需自定义外部端口（docker run），请额外传入：
+> `-e WEB_EXTERNAL_PORT=8080 -e API_EXTERNAL_PORT=8081 -e WS_EXTERNAL_PORT=8082`
+
+### 方式三：一键脚本
+
+自动检测端口冲突并配置，适合不熟悉 Docker 的用户：
+
+```bash
+# 使用 curl
+curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh | bash
+
+# 或使用 wget
+wget -qO- https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh | bash
+```
+
+脚本会自动：
+
+- ✅ 下载 `docker-compose.yml`
+- ✅ 检测默认端口（3000/3001/3002）是否被占用
+- ✅ 提供可用的替代端口
+- ✅ 创建配置文件并启动服务
+
+### 方式四：源码运行
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/foru17/clash-master.git
+cd clash-master
+
+# 2. 安装依赖
+pnpm install
+
+# 3. 启动开发服务
+pnpm dev
+```
+
+访问 <http://localhost:3000>
+
 ## 📖 首次使用
 
 ![首次使用](./assets/clash-master-setup.png)
 
-1. 打开 http://localhost:3000
+1. 打开 <http://localhost:3000>
 2. 首次访问会弹出**后端配置**对话框
 3. 填写 OpenClash 连接信息：
    - **名称**: 自定义名称（如 "Home"）
@@ -136,23 +163,9 @@ docker run -d \
 
 如果看到错误提示端口已被占用，有以下几种解决方案：
 
-### 方案 1：使用一键脚本（最简单）
+### 方案 1：使用 .env 文件
 
-```bash
-./setup.sh
-```
-
-脚本会自动检测并提供可用的端口。
-
-### 方案 2：使用 .env 文件
-
-创建 `.env` 文件：
-
-```bash
-cp .env.example .env
-```
-
-修改端口为你想要的值：
+创建 `.env` 文件（与 `docker-compose.yml` 同目录）：
 
 ```env
 WEB_EXTERNAL_PORT=8080    # 修改 Web UI 端口
@@ -167,28 +180,43 @@ docker compose down
 docker compose up -d
 ```
 
-现在访问 http://localhost:8080
+现在访问 <http://localhost:8080>
 
-### 方案 3：直接修改 docker-compose.yml
+### 方案 2：直接修改 docker-compose.yml
 
 ```yaml
 ports:
-  - "8080:3000"  # 外部 8080 → 内部 3000
-  - "8081:3001"  # 外部 8081 → 内部 3001
-  - "8082:3002"  # 外部 8082 → 内部 3002
-environment:
-  - NEXT_PUBLIC_WS_PORT=8082  # 告诉前端使用 8082
+  - "8080:3000" # 外部 8080 → 内部 3000
+  - "8081:3001" # 外部 8081 → 内部 3001
+  - "8082:3002" # 外部 8082 → 内部 3002
 ```
+
+> 说明：前端会在运行时读取外部端口配置，无需再设置 `NEXT_PUBLIC_WS_PORT`。
+
+### 方案 3：使用一键脚本
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh | bash
+```
+
+脚本会自动检测并提供可用的端口。
 
 ## 🐳 Docker 配置
 
 ### 端口说明
 
-| 端口 |   用途    | 必需 | 说明          |
-| :--: | :-------: | :--: | :------------ |
-| 3000 | Web 界面  |  ✅  | 前端访问端口  |
-| 3001 | API 接口  |  ✅  | REST API 端口 |
-| 3002 | WebSocket |  ✅  | 实时数据传输  |
+| 端口 |   用途    | 外部必需 | 说明 |
+| :--: | :-------: | :------: | :--- |
+| 3000 | Web 界面  |   ✅     | 前端访问入口 |
+| 3001 | API 接口  |   可选   | 仅直连/调试时需要；前端默认走 `/api` |
+| 3002 | WebSocket |   可选   | 实时数据推送；可通过 Nginx `/ws` 代理 |
+
+> 只配置主站 Web 的 Nginx 反代即可：前端默认同域访问 `/api`，无需额外暴露或配置 3001/3002。
+> 如需直连 API/WS，可设置 `API_URL` / `WS_URL`，或暴露对应端口。
+
+### 多架构支持
+
+Docker 镜像同时支持 `linux/amd64` 和 `linux/arm64`。
 
 ### 数据持久化
 
@@ -211,17 +239,12 @@ docker compose up -d
 
 ### Q: 提示 "端口已被占用" 怎么办？
 
-**A:** 使用一键配置脚本，它会自动检测并提供可用端口：
-
-```bash
-./setup.sh
-```
-
-或者手动修改 `.env` 文件中的端口。
+**A:** 参考上方[端口冲突解决](#-端口冲突解决)部分。最简单的方式是创建 `.env` 文件修改端口。
 
 ### Q: 修改端口后无法访问？
 
 **A:** 确保三点：
+
 1. `.env` 文件中的端口已修改
 2. 重启了服务：`docker compose restart`
 3. 访问时使用了新端口（如 `http://localhost:8080`）
@@ -229,6 +252,7 @@ docker compose up -d
 ### Q: 连接 OpenClash 失败？
 
 **A:** 检查以下几点：
+
 1. OpenClash 的「外部控制」是否已开启
 2. OpenClash 地址是否正确（格式：`IP:端口`）
 3. 如果配置了 Secret，Token 是否填写正确
@@ -236,7 +260,8 @@ docker compose up -d
 
 ### Q: 如何查看服务日志？
 
-**A:** 
+**A:**
+
 ```bash
 # 查看所有日志
 docker logs -f clash-master
@@ -255,14 +280,11 @@ cp -r ./data ./data-backup-$(date +%Y%m%d)
 
 ### Q: 如何清理历史数据？
 
-**A:** 
-1. 点击左侧边栏底部的「后端配置」
+**A:**
+
+1. 点击左侧边栏底部的「设置」
 2. 切换到「数据库」标签页
 3. 选择清理范围：1天前 / 7天前 / 30天前 / 全部
-
-### Q: 支持 ARM 架构吗？
-
-**A:** 目前 Docker 镜像支持 `linux/amd64` 和 `linux/arm64`。
 
 ## 📁 项目结构
 
@@ -270,10 +292,9 @@ cp -r ./data ./data-backup-$(date +%Y%m%d)
 clash-master/
 ├── docker-compose.yml      # Docker Compose 配置
 ├── Dockerfile              # Docker 镜像构建
-├── setup.sh                # 一键配置脚本 ⭐
-├── docker-start.sh         # Docker 启动脚本
-├── start.sh                # 源码启动脚本
-├── .env.example            # 环境变量示例
+├── setup.sh                # 一键配置脚本
+├── docker-start.sh         # Docker 容器启动脚本
+├── start.sh                # 源码开发启动脚本
 ├── assets/                 # 预览图和图标
 ├── apps/
 │   ├── collector/          # 数据收集服务（Node.js + WebSocket）
@@ -284,14 +305,20 @@ clash-master/
 
 ## 🛠️ 技术栈
 
-- **前端**: Next.js 15 + React 19 + TypeScript + Tailwind CSS
-- **数据收集**: Node.js + WebSocket + SQLite
+- **前端**: Next.js 16 + React 19 + TypeScript + Tailwind CSS
+- **UI 组件**: shadcn/ui
+- **数据收集**: Node.js + Fastify + WebSocket + SQLite
 - **可视化**: Recharts + D3.js
+- **国际化**: next-intl（中/英）
 - **部署**: Docker + Docker Compose
 
 ## 📄 许可证
 
 MIT License © 2024 [foru17](https://github.com/foru17)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=foru17/clash-master&type=date&legend=top-left)](https://www.star-history.com/#foru17/clash-master&type=date&legend=top-left)
 
 ---
 

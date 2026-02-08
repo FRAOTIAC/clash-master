@@ -85,4 +85,4 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
         repository: foru17/clash-master
         readme-filepath: ./README.md
-        short-description: "Modern and beautiful traffic analysis dashboard for OpenClash"
+        short-description: "Modern traffic analysis dashboard for Clash"

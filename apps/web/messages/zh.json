@@ -167,9 +167,20 @@
   },
   "rules": {
     "title": "规则",
-    "distribution": "规则链路分布",
+    "distribution": "规则流量分布",
+    "ruleList": "规则列表",
+    "topDomains": "热门域名",
     "description": "按匹配规则和最终代理节点的流量分布",
-    "connections": "连接"
+    "connections": "连接",
+    "noData": "暂无数据",
+    "total": "总计",
+    "download": "下载",
+    "upload": "上传",
+    "chainFlow": "规则链路流向",
+    "loadingChainFlow": "加载链路流向...",
+    "showAll": "全景展示",
+    "activePolicy": "全部策略",
+    "noTrafficRecord": "暂无流量记录"
   },
   "network": {
     "title": "网络",
@@ -185,6 +196,10 @@
     "traffic": "流量：",
     "low": "低",
     "high": "高"
+  },
+  "pwa": {
+    "installApp": "安装应用",
+    "tooltip": "安装为桌面应用，享受更快的访问速度和原生体验"
   },
   "about": {
     "title": "关于",
@@ -205,6 +220,8 @@
     "viewOnGitHub": "在 GitHub 查看"
   },
   "common": {
+    "daysSuffix": "天前",
+    "days": "天",
     "search": "搜索",
     "cancel": "取消",
     "close": "关闭",
@@ -253,6 +270,7 @@
     "useSsl": "使用 HTTPS",
     "namePlaceholder": "例如：路由器",
     "tokenPlaceholder": "可选，如有设置请填写",
+    "tokenKeepPlaceholder": "已设置令牌，留空保持不变",
     "active": "当前活跃",
     "disabled": "已禁用",
     "setActive": "设为活跃",
@@ -284,8 +302,29 @@
     "collect": "收集",
     "setDisplay": "设为显示",
     "selectBackend": "选择后端",
-    "manageBackends": "管理后端",
+    "manageBackends": "设置",
     "firstBackendAutoActive": "第一个后端已自动设为显示",
-    "verificationFailed": "后端验证失败，请检查地址和令牌是否正确"
+    "verificationFailed": "后端验证失败，请检查地址和令牌是否正确",
+    "preferencesTab": "偏好设置",
+    "faviconProvider": "网站图标提供商",
+    "faviconProviderDescription": "选择在域名列表中显示网站图标时使用的服务。favicon.im 在国内访问更快。",
+    "faviconGoogle": "Google Favicon",
+    "faviconIm": "favicon.im (国内推荐)",
+    "faviconOff": "关闭（使用默认图标）",
+    "dataRetention": "数据存储时间",
+    "dataRetentionDescription": "控制详细连接记录的保存时长。域名和IP的统计数据将永久保留。存储时间越长占用磁盘空间越多，但可用于排查更早的问题。",
+    "retentionPresetMinimal": "极简",
+    "retentionPresetMinimalDesc": "节省空间，保留3天详细记录",
+    "retentionPresetStandard": "标准",
+    "retentionPresetStandardDesc": "均衡选择，保留7天详细记录",
+    "retentionPresetExtended": "完整",
+    "retentionPresetExtendedDesc": "完整历史，保留30天详细记录",
+    "retentionPresetMaximum": "最大",
+    "retentionPresetMaximumDesc": "最大保留，保留90天详细记录",
+    "retentionCustom": "自定义",
+    "retentionCustomDesc": "自定义存储时长（最多90天）",
+    "retentionDays": "{days} 天",
+    "retentionUpdated": "存储设置已保存",
+    "retentionUpdateFailed": "设置保存失败"
   }
 }
