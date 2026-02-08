@@ -9,7 +9,6 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKERHUB_IMAGE: foru17/clash-master
   GHCR_IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
@@ -47,12 +46,9 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Lowercase Repo Name
+      run: |
+        echo "GHCR_IMAGE_LOWERCASE=ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
     - name: Log in to GitHub Container Registry
       if: github.event_name != 'pull_request'
@@ -67,8 +63,7 @@ jobs:
       uses: docker/metadata-action@v5
       with:
         images: |
-          ${{ env.DOCKERHUB_IMAGE }}
-          ${{ env.GHCR_IMAGE }}
+          ${{ env.GHCR_IMAGE_LOWERCASE }}
         tags: |
           type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
           type=raw,value=${{ steps.pkg.outputs.version }},enable=${{ github.ref_name == 'main' }}
@@ -92,12 +87,27 @@ jobs:
         cache-to: type=gha,mode=max
         platforms: linux/amd64,linux/arm64
 
-    - name: Update Docker Hub description
-      if: github.event_name != 'pull_request' && github.ref_name == 'main'
-      uses: peter-evans/dockerhub-description@v4
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-        repository: foru17/clash-master
-        readme-filepath: ./README.md
-        short-description: "Modern traffic analysis dashboard for Clash"
+    - name: Generate Build Summary
+      if: github.event_name != 'pull_request'
+      run: |
+        echo "### 📦 Docker Image Size Summary" >> $GITHUB_STEP_SUMMARY
+        echo "| Platform | Compressed Size |" >> $GITHUB_STEP_SUMMARY
+        echo "| :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+        
+        # Get raw manifest list
+        MANIFEST_LIST=$(docker buildx imagetools inspect ${{ env.GHCR_IMAGE_LOWERCASE }}:latest --raw)
+        
+        for PLATFORM in "linux/amd64" "linux/arm64"; do
+          OS=$(echo $PLATFORM | cut -d/ -f1)
+          ARCH=$(echo $PLATFORM | cut -d/ -f2)
+          
+          # Find digest for this platform using jq
+          DIGEST=$(echo "$MANIFEST_LIST" | jq -r ".manifests[] | select(.platform.os == \"$OS\" and .platform.architecture == \"$ARCH\") | .digest")
+          
+          if [ "$DIGEST" != "null" ] && [ ! -z "$DIGEST" ]; then
+            # Get the actual manifest for this digest and sum layer sizes
+            SIZE_BYTES=$(docker buildx imagetools inspect ${{ env.GHCR_IMAGE_LOWERCASE }}@$DIGEST --raw | jq -r '.layers[].size' | awk '{s+=$1} END {print s}')
+            SIZE_MB=$(awk "BEGIN {printf \"%.2f\", $SIZE_BYTES/1024/1024}")
+            echo "| $PLATFORM | $SIZE_MB MB |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
