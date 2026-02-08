@@ -39,8 +39,9 @@ EOF
 # Ensure data directory exists
 mkdir -p "$(dirname "$DB_PATH")"
 
-# ─── Start collector ─────────────────────────────────────────────────
+# Start collector
 echo "🚀 Starting data collector..."
+# Explicitly use the current directory for node to find the root node_modules
 cd /app/apps/collector && node dist/index.js &
 COLLECTOR_PID=$!
 
