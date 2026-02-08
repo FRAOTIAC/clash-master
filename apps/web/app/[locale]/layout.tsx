@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Clash Master",
-  description: "Modern and beautiful traffic analysis dashboard for OpenClash",
+  description: "Modern and beautiful traffic analysis dashboard for Clash",
   icons: {
     icon: "/clash-master.png",
     shortcut: "/clash-master.png",

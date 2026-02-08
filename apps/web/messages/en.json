@@ -1,7 +1,7 @@
 {
   "metadata": {
     "title": "Clash Master - Traffic Analytics",
-    "description": "Real-time traffic statistics and analytics for OpenClash"
+    "description": "Real-time traffic statistics and analytics for Clash"
   },
   "nav": {
     "overview": "Overview",
@@ -15,7 +15,7 @@
   },
   "header": {
     "title": "Clash Master",
-    "subtitle": "Modern traffic analysis dashboard for Clash"
+    "subtitle": "Clash traffic analytics dashboard"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -270,7 +270,7 @@
     "title": "About",
     "version": "Version",
     "projectName": "Clash Master",
-    "description": "Modern traffic analysis dashboard for Clash",
+    "description": "Clash traffic analytics dashboard",
     "github": "GitHub",
     "openSource": "Clash Master",
     "license": "MIT License",
@@ -323,8 +323,8 @@
   },
   "backend": {
     "title": "Settings",
-    "firstTimeTitle": "Configure OpenClash Backend",
-    "firstTimeDescription": "Enter your OpenClash connection information to start monitoring traffic",
+    "firstTimeTitle": "Configure Clash Backend",
+    "firstTimeDescription": "Enter your Clash connection information to start monitoring traffic",
     "description": "Manage backend connections and database",
     "backendsTab": "Backends",
     "databaseTab": "Database",
@@ -367,7 +367,7 @@
     "collect": "Collect",
     "setDisplay": "Set Display",
     "selectBackend": "Select Backend",
-    "manageBackends": "Settings",
+    "manageBackends": "Manage Backends",
     "firstBackendAutoActive": "First backend automatically set as active",
     "verificationFailed": "Backend verification failed. Please check the host address and token.",
     "preferencesTab": "Preferences",

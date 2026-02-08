@@ -93,8 +93,8 @@ export function Navigation({
       {/* Desktop Navigation - Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 border-r border-border/40 bg-background/80 backdrop-blur-md">
         {/* Logo */}
-        <div className="flex items-center gap-3 p-6 border-b border-border/40">
-          <div className="w-14 h-14 rounded-xl  flex items-center justify-center overflow-hidden hover:opacity-80">
+        <div className="flex items-start gap-3 p-6 border-b border-border/40">
+          <div className="w-14 h-14 rounded-xl shrink-0 flex items-center justify-center overflow-hidden hover:opacity-80">
             <Image
               src="/clash-master.png"
               alt="Clash Master"
@@ -104,8 +104,10 @@ export function Navigation({
             />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-bold text-xl">{headerT("title")}</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-bold text-xl leading-tight whitespace-nowrap">
+                {headerT("title")}
+              </h1>
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -133,7 +135,7 @@ export function Navigation({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <p className="text-xs text-muted-foreground/60">
+            <p className="text-xs leading-4 text-muted-foreground/60 min-h-8">
               {headerT("subtitle")}
             </p>
           </div>
@@ -171,12 +173,31 @@ export function Navigation({
                     onClick={promptInstall}
                     className="group w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all bg-gradient-to-r from-primary/8 to-primary/4 hover:from-primary/14 hover:to-primary/8 border border-primary/15 hover:border-primary/30">
                     <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10 group-hover:bg-primary/15 transition-colors">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-primary">
-                        <path d="M8 1.5v8m0 0L5 6.5m3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        className="text-primary">
+                        <path
+                          d="M8 1.5v8m0 0L5 6.5m3 3 3-3"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M2.5 10.5v2a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-2"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     </span>
-                    <span className="text-primary/90">{pwaT("installApp")}</span>
+                    <span className="text-primary/90">
+                      {pwaT("installApp")}
+                    </span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[200px]">
@@ -337,7 +358,9 @@ export function Navigation({
                         </span>
                       ) : latestVersion ? (
                         <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                          <span className="font-mono tabular-nums">v{latestVersion}</span>
+                          <span className="font-mono tabular-nums">
+                            v{latestVersion}
+                          </span>
                           <span className="text-emerald-500">✓</span>
                         </span>
                       ) : (
@@ -356,7 +379,9 @@ export function Navigation({
 
                 {/* License */}
                 <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50">
-                  <span className="text-sm font-medium">{aboutT("license")}</span>
+                  <span className="text-sm font-medium">
+                    {aboutT("license")}
+                  </span>
                   <span className="text-sm text-muted-foreground">MIT</span>
                 </div>
 

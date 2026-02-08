@@ -1,7 +1,7 @@
 {
   "metadata": {
     "title": "Clash Master - 流量分析",
-    "description": "OpenClash 实时流量统计与分析"
+    "description": "Clash 实时流量统计与分析"
   },
   "nav": {
     "overview": "概览",
@@ -15,7 +15,7 @@
   },
   "header": {
     "title": "Clash Master",
-    "subtitle": "现代美观的流量分析工具"
+    "subtitle": "现代 Clash 可视化看板"
   },
   "dashboard": {
     "title": "仪表盘",
@@ -113,7 +113,7 @@
     "loading": "加载中..."
   },
   "topDomains": {
-    "title": "Top 域名",
+    "title": "热门域名",
     "sortByTraffic": "按流量排序",
     "sortByConnections": "按连接数排序",
     "viewAll": "查看全部",
@@ -122,7 +122,7 @@
     "noDataHint": "开始采集后，这里会显示域名流量。"
   },
   "topProxies": {
-    "title": "Top 代理",
+    "title": "热门代理",
     "sortByTraffic": "按流量排序",
     "sortByConnections": "按连接数排序",
     "viewAll": "查看全部",
@@ -269,7 +269,7 @@
     "title": "关于",
     "version": "版本",
     "projectName": "Clash Master",
-    "description": "现代美观的 OpenClash 流量分析看板",
+    "description": "现代 Clash 可视化看板",
     "github": "GitHub",
     "openSource": "开源项目",
     "license": "MIT 许可证",
@@ -322,8 +322,8 @@
   },
   "backend": {
     "title": "设置",
-    "firstTimeTitle": "配置 OpenClash 后端",
-    "firstTimeDescription": "请输入您的 OpenClash 连接信息以开始监控流量",
+    "firstTimeTitle": "配置 Clash 后端",
+    "firstTimeDescription": "请输入您的 Clash 连接信息以开始监控流量",
     "description": "管理后端连接和数据库",
     "backendsTab": "后端管理",
     "databaseTab": "数据库",
