@@ -1,6 +1,7 @@
 services:
   clash-master:
-    image: foru17/clash-master:latest
+    # image: ghcr.io/fraotiac/clash-master:latest
+    image: ghcr.io/foru17/clash-master:latest
     container_name: clash-master
     restart: unless-stopped
     ports:
