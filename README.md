@@ -182,11 +182,7 @@ Docker 镜像同时支持 `linux/amd64` 和 `linux/arm64`。
 对于 Unraid 用户，可以通过以下方式安装：
 
 1. **手动添加模板**：
-   - 在 Unraid 终端执行以下命令下载模板：
-     ```bash
-     wget -P /boot/config/plugins/dockerMan/templates-user https://raw.githubusercontent.com/foru17/clash-master/main/unraid-template.xml
-     ```
-   - 或者手动将 `unraid-template.xml` 的内容保存到 Unraid 闪存盘的 `/boot/config/plugins/dockerMan/templates-user/ClashMaster.xml`
+   - 将 `unraid-template.xml` 的内容保存到 Unraid 闪存盘的 `/boot/config/plugins/dockerMan/templates-user/ClashMaster.xml`
    - 在 Unraid WebUI 的 Docker 页面点击 "Add Container"，在模板选择中找到 "ClashMaster"
 
 2. **配置说明**：

@@ -89,11 +89,7 @@ Docker images support both `linux/amd64` and `linux/arm64`.
 For Unraid users:
 
 1. **Add Template Manually**:
-   - Run the following command in Unraid terminal to download the template:
-     ```bash
-     wget -P /boot/config/plugins/dockerMan/templates-user https://raw.githubusercontent.com/foru17/clash-master/main/unraid-template.xml
-     ```
-   - Alternatively, save the content of `unraid-template.xml` to `/boot/config/plugins/dockerMan/templates-user/ClashMaster.xml` on your Unraid flash drive.
+   - Save the content of `unraid-template.xml` to `/boot/config/plugins/dockerMan/templates-user/ClashMaster.xml` on your Unraid flash drive.
    - Click "Add Container" in the Unraid Docker tab and select "ClashMaster" from the templates.
 
 2. **Configuration**:
