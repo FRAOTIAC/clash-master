@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>ClashMaster</Name>
+  <Repository>ghcr.io/foru17/clash-master</Repository>
+  <Registry>https://github.com/foru17/clash-master/pkgs/container/clash-master</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/foru17/clash-master/issues</Support>
+  <Project>https://github.com/foru17/clash-master</Project>
+  <Overview>Clash Master 是一款优雅且现代化的 OpenClash 流量可视化分析工具。提供实时监控、多维度分析（国家、域名、代理）以及多后端管理功能。&#xD;&#xA;&#xD;&#xA;Clash Master is a modern, elegant traffic visualization and analysis tool for OpenClash. Features real-time monitoring, multi-dimensional analysis, and multi-backend management.</Overview>
+  <Category>Network:Proxy Tools:Utilities</Category>
+  <WebUI>http://[IP]:[PORT:3000]</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/foru17/clash-master/main/assets/icon-clash-master.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>优雅且现代化的 OpenClash 流量可视化分析工具</Description>
+  <Config Name="Web UI Port" Target="3000" Default="3000" Mode="tcp" Description="Web 界面访问端口" Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="API Port" Target="3001" Default="3001" Mode="tcp" Description="API 接口端口 (内部)" Type="Port" Display="always" Required="true" Mask="false">3001</Config>
+  <Config Name="WebSocket Port" Target="3002" Default="3002" Mode="tcp" Description="WebSocket 实时数据端口 (内部)" Type="Port" Display="always" Required="true" Mask="false">3002</Config>
+  <Config Name="Data Path" Target="/app/data" Default="/mnt/user/appdata/clash-master" Mode="rw" Description="数据存储路径" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/clash-master</Config>
+  
+  <!-- 外部端口配置 - 用于解决 Unraid 端口映射后的连接问题 -->
+  <Config Name="Web External Port" Target="WEB_EXTERNAL_PORT" Default="3000" Description="Web 界面外部访问端口 (如果修改了上面的 Web UI Port 映射，请同步修改这里)" Type="Variable" Display="always" Required="false" Mask="false">3000</Config>
+  <Config Name="API External Port" Target="API_EXTERNAL_PORT" Default="3001" Description="API 外部访问端口 (用于前端运行时发现)" Type="Variable" Display="always" Required="false" Mask="false">3001</Config>
+  <Config Name="WebSocket External Port" Target="WS_EXTERNAL_PORT" Default="3002" Description="WebSocket 外部访问端口 (用于前端实时连接)" Type="Variable" Display="always" Required="false" Mask="false">3002</Config>
+  
+  <Config Name="Database Path" Target="DB_PATH" Default="/app/data/stats.db" Description="容器内数据库路径" Type="Variable" Display="advanced" Required="false" Mask="false">/app/data/stats.db</Config>
+  <Config Name="Node Env" Target="NODE_ENV" Default="production" Description="运行 environment" Type="Variable" Display="advanced" Required="false" Mask="false">production</Config>
+</Container>

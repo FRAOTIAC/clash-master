@@ -32,6 +32,7 @@
 - [📖 首次使用](#-首次使用)
 - [🔧 端口冲突解决](#-端口冲突解决)
 - [🐳 Docker 配置](#-docker-配置)
+- [📦 Unraid 安装](#-unraid-安装)
 - [❓ 常见问题](#-常见问题)
 - [📁 项目结构](#-项目结构)
 - [🛠️ 技术栈](#️-技术栈)
@@ -75,38 +76,16 @@ docker compose up -d
 ### 方式二：Docker 直接运行
 
 ```bash
-**最简（推荐，仅 Web 反代）：**
-
-```bash
+# 最简（推荐，仅 Web 反代）：
 docker run -d \
   --name clash-master \
   -p 3000:3000 \
   -v $(pwd)/data:/app/data \
   --restart unless-stopped \
   foru17/clash-master:latest
-```
-
-**可选（直连 API / WebSocket 时才需要）：**
-
-```bash
-docker run -d \
-  --name clash-master \
-  -p 3000:3000 \
-  -p 3001:3001 \
-  -p 3002:3002 \
-  -v $(pwd)/data:/app/data \
-  --restart unless-stopped \
-  foru17/clash-master:latest
-```
-
-> 默认前端走同域 `/api`，所以只需要暴露 3000。  
-> 只有当你需要直连 API / WS 或未配置 Nginx `/api` / `/ws` 反代时，才需要暴露 3001/3002。
 ```
 
 访问 <http://localhost:3000>
-
-> 如需自定义外部端口（docker run），请额外传入：
-> `-e WEB_EXTERNAL_PORT=8080 -e API_EXTERNAL_PORT=8081 -e WS_EXTERNAL_PORT=8082`
 
 ### 方式三：一键脚本
 
@@ -119,13 +98,6 @@ curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh |
 # 或使用 wget
 wget -qO- https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh | bash
 ```
-
-脚本会自动：
-
-- ✅ 下载 `docker-compose.yml`
-- ✅ 检测默认端口（3000/3001/3002）是否被占用
-- ✅ 提供可用的替代端口
-- ✅ 创建配置文件并启动服务
 
 ### 方式四：源码运行
 
@@ -140,8 +112,6 @@ pnpm install
 # 3. 启动开发服务
 pnpm dev
 ```
-
-访问 <http://localhost:3000>
 
 ## 📖 首次使用
 
@@ -180,8 +150,6 @@ docker compose down
 docker compose up -d
 ```
 
-现在访问 <http://localhost:8080>
-
 ### 方案 2：直接修改 docker-compose.yml
 
 ```yaml
@@ -192,14 +160,6 @@ ports:
 ```
 
 > 说明：前端会在运行时读取外部端口配置，无需再设置 `NEXT_PUBLIC_WS_PORT`。
-
-### 方案 3：使用一键脚本
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh | bash
-```
-
-脚本会自动检测并提供可用的端口。
 
 ## 🐳 Docker 配置
 
@@ -212,79 +172,30 @@ curl -fsSL https://raw.githubusercontent.com/foru17/clash-master/main/setup.sh |
 | 3002 | WebSocket |   可选   | 实时数据推送；可通过 Nginx `/ws` 代理 |
 
 > 只配置主站 Web 的 Nginx 反代即可：前端默认同域访问 `/api`，无需额外暴露或配置 3001/3002。
-> 如需直连 API/WS，可设置 `API_URL` / `WS_URL`，或暴露对应端口。
 
 ### 多架构支持
 
 Docker 镜像同时支持 `linux/amd64` 和 `linux/arm64`。
 
-### 数据持久化
+## 📦 Unraid 安装
 
-数据默认存储在容器内的 `/app/data` 目录，建议映射到宿主机：
+对于 Unraid 用户，可以通过以下方式安装：
 
-```yaml
-volumes:
-  - ./data:/app/data
-```
+1. **手动添加模板**：
+   - 在 Unraid 终端执行以下命令下载模板：
+     ```bash
+     wget -P /boot/config/plugins/dockerMan/templates-user https://raw.githubusercontent.com/foru17/clash-master/main/unraid-template.xml
+     ```
+   - 或者手动将 `unraid-template.xml` 的内容保存到 Unraid 闪存盘的 `/boot/config/plugins/dockerMan/templates-user/ClashMaster.xml`
+   - 在 Unraid WebUI 的 Docker 页面点击 "Add Container"，在模板选择中找到 "ClashMaster"
 
-### 更新到最新版本
+2. **配置说明**：
+   - **Web UI Port**: 默认 3000
+   - **API Port**: 默认 3001
+   - **WebSocket Port**: 默认 3002
+   - **Data Path**: 映射到 `/app/data`，用于存储 SQLite 数据库
 
-```bash
-# 拉取最新镜像并重新启动
-docker compose pull
-docker compose up -d
-```
-
-## ❓ 常见问题
-
-### Q: 提示 "端口已被占用" 怎么办？
-
-**A:** 参考上方[端口冲突解决](#-端口冲突解决)部分。最简单的方式是创建 `.env` 文件修改端口。
-
-### Q: 修改端口后无法访问？
-
-**A:** 确保三点：
-
-1. `.env` 文件中的端口已修改
-2. 重启了服务：`docker compose restart`
-3. 访问时使用了新端口（如 `http://localhost:8080`）
-
-### Q: 连接 OpenClash 失败？
-
-**A:** 检查以下几点：
-
-1. OpenClash 的「外部控制」是否已开启
-2. OpenClash 地址是否正确（格式：`IP:端口`）
-3. 如果配置了 Secret，Token 是否填写正确
-4. 容器是否能访问到 OpenClash 所在网络
-
-### Q: 如何查看服务日志？
-
-**A:**
-
-```bash
-# 查看所有日志
-docker logs -f clash-master
-
-# 只看最后 100 行
-docker logs --tail 100 clash-master
-```
-
-### Q: 如何备份数据？
-
-**A:** 数据存储在映射的目录中（默认 `./data/stats.db`）：
-
-```bash
-cp -r ./data ./data-backup-$(date +%Y%m%d)
-```
-
-### Q: 如何清理历史数据？
-
-**A:**
-
-1. 点击左侧边栏底部的「设置」
-2. 切换到「数据库」标签页
-3. 选择清理范围：1天前 / 7天前 / 30天前 / 全部
+> 💡 **注意**: 如果修改了 WebSocket 的外部映射端口，请务必同步修改 `WS_EXTERNAL_PORT` 环境变量，以确保前端能正确连接到 WebSocket。
 
 ## 📁 项目结构
 
@@ -294,34 +205,18 @@ clash-master/
 ├── Dockerfile              # Docker 镜像构建
 ├── setup.sh                # 一键配置脚本
 ├── docker-start.sh         # Docker 容器启动脚本
-├── start.sh                # 源码开发启动脚本
-├── assets/                 # 预览图和图标
-├── apps/
-│   ├── collector/          # 数据收集服务（Node.js + WebSocket）
-│   └── web/                # Next.js 前端应用
-└── packages/
-    └── shared/             # 共享类型定义和工具
+├── unraid-template.xml     # Unraid 容器模板 ⭐
+└── apps/
+    ├── collector/          # 数据收集服务
+    └── web/                # Next.js 前端应用
 ```
 
 ## 🛠️ 技术栈
 
 - **前端**: Next.js 16 + React 19 + TypeScript + Tailwind CSS
-- **UI 组件**: shadcn/ui
 - **数据收集**: Node.js + Fastify + WebSocket + SQLite
-- **可视化**: Recharts + D3.js
-- **国际化**: next-intl（中/英）
 - **部署**: Docker + Docker Compose
 
 ## 📄 许可证
 
 MIT License © 2024 [foru17](https://github.com/foru17)
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=foru17/clash-master&type=date&legend=top-left)](https://www.star-history.com/#foru17/clash-master&type=date&legend=top-left)
-
----
-
-<p align="center">
-  如果这个项目对你有帮助，请给个 ⭐ Star 支持一下！
-</p>
